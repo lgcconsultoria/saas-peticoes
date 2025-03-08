@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Sidebar() {
@@ -34,7 +35,7 @@ export default function Sidebar() {
         </div>
         <div className="p-4 border-t border-blue-700">
           <div className="flex items-center">
-            <img className="h-8 w-8 rounded-full bg-blue-600" src="https://via.placeholder.com/32" alt="Avatar" />
+            <Image width={30} height={30} className="h-8 w-8 rounded-full bg-blue-600" src="https://via.placeholder.com/32" alt="Avatar" />
             <div className="ml-3">
               <p className="text-sm font-medium text-white">Usuário Demo</p>
               <a href="#" className="text-xs text-blue-200 hover:text-white">Sair</a>
