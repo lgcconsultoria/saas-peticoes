@@ -4,8 +4,7 @@ import TypePetition from '../components/TypePetition';
 import NewPetition from '../components/NewPetition';
 import PreviewPetition from '../components/PreviewPetition';
 
-const Dashboard: React.FC = () => {
-
+export default function Dashboard() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
@@ -25,6 +24,4 @@ const Dashboard: React.FC = () => {
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}
