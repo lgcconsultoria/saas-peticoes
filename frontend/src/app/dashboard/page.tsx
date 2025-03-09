@@ -11,19 +11,6 @@ const Dashboard: React.FC = () => {
       <Sidebar />
 
       <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="md:hidden bg-white shadow-sm">
-          <div className="flex items-center justify-between h-16 px-6">
-            <button
-              className="text-gray-500 focus:outline-none"
-            >
-              <i className="fas fa-bars"></i>
-            </button>
-            <h1 className="text-xl font-bold text-blue-800">PeticionaFácil</h1>
-            <button className="text-gray-500 focus:outline-none">
-              <i className="fas fa-user-circle text-xl"></i>
-            </button>
-          </div>
-        </div>
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">

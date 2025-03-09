@@ -1,8 +1,7 @@
-'use client';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSearch } from "@fortawesome/free-solid-svg-icons";
 
-import React from 'react';
-
-const SearchPetition: React.FC = () => {
+export default function Sidebar() {
   return (
     <div className="mb-8">
       <div className="relative">
@@ -12,11 +11,9 @@ const SearchPetition: React.FC = () => {
           className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <i className="fas fa-search text-gray-400"></i>
+          <FontAwesomeIcon icon={faSearch} width={16} height={16} className="text-gray-400" />
         </div>
       </div>
     </div>
   );
-};
-
-export default SearchPetition;
+}

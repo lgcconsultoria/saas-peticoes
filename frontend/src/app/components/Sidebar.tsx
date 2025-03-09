@@ -1,12 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFileAlt, faFolder, faCog } from "@fortawesome/free-solid-svg-icons"
 
 export default function Sidebar() {
   return (
     <div className="md:flex md:flex-shrink-0">
       <div className="flex flex-col w-64 bg-blue-800 text-white">
         <div className="flex items-center justify-center h-16 px-4 border-b border-blue-700">
-          <h1 className="text-xl font-bold">PeticionaFácil</h1>
+          <h1 className="text-xl font-bold">Peticiona Fácil</h1>
         </div>
         <div className="flex flex-col flex-grow pt-5 overflow-y-auto">
           <nav className="flex-1 px-2 space-y-1">
@@ -14,21 +16,21 @@ export default function Sidebar() {
               href="#nova-peticao" 
               className="flex items-center px-4 py-3 text-white bg-blue-700 rounded-md group"
             >
-              <i className="fas fa-file-alt mr-3"></i>
+              <FontAwesomeIcon icon={faFileAlt} width={16} height={16}  className="mr-3" />
               <span>Nova Petição</span>
             </Link>
             <Link 
               href="#minhas-peticoes"
               className="flex items-center px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-md group"
             >
-              <i className="fas fa-folder mr-3"></i>
+              <FontAwesomeIcon icon={faFolder} width={16} height={16}  className="mr-3" />
               <span>Minhas Petições</span>
             </Link>
             <Link 
               href="#configuracoes"
               className="flex items-center px-4 py-3 text-blue-100 hover:bg-blue-700 rounded-md group"
             >
-              <i className="fas fa-cog mr-3"></i>
+              <FontAwesomeIcon icon={faCog} width={16} height={16} className="mr-3" />
               <span>Configurações</span>
             </Link>
           </nav>
