@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFileAlt, faFolder, faCog } from "@fortawesome/free-solid-svg-icons"
+import { faFileAlt, faFolder, faCog, faUser } from "@fortawesome/free-solid-svg-icons"
 
 export default function Sidebar() {
+  
   return (
     <div className="md:flex md:flex-shrink-0">
       <div className="flex flex-col w-64 bg-blue-800 text-white">
@@ -37,7 +37,7 @@ export default function Sidebar() {
         </div>
         <div className="p-4 border-t border-blue-700">
           <div className="flex items-center">
-            <Image width={30} height={30} className="h-8 w-8 rounded-full bg-blue-600" src="https://via.placeholder.com/32" alt="Avatar" />
+            <FontAwesomeIcon icon={faUser} className="h-8 w-8 rounded-full bg-blue-600 text-white" />
             <div className="ml-3">
               <p className="text-sm font-medium text-white">Usuário Demo</p>
               <a href="#" className="text-xs text-blue-200 hover:text-white">Sair</a>
