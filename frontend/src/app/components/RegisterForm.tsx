@@ -6,7 +6,7 @@ import { useActionState } from "react";
 
 export default function RegisterForm() {
 
-    const [state, formAction, pending] = useActionState(registerAction, null)
+    const [state, formAction, isPending] = useActionState(registerAction, null)
 
     return (
         <>
@@ -19,8 +19,7 @@ export default function RegisterForm() {
                 <div className="rounded-md shadow-sm -space-y-px">
                     <div>
                         <input
-                            type="text"
-                            required
+                            type="text"                          
                             name="name"
                             className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Nome completo"
@@ -28,8 +27,7 @@ export default function RegisterForm() {
                     </div>
                     <div>
                         <input
-                            type="email"
-                            required
+                            type="email"  
                             name="email"
                             className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Email"
@@ -38,7 +36,6 @@ export default function RegisterForm() {
                     <div>
                         <input
                             type="password"
-                            required
                             name="password"
                             className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Senha"
@@ -49,6 +46,7 @@ export default function RegisterForm() {
 
                 <div>
                     <button
+                        disabled={isPending}
                         type="submit"
                         className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 cursor-pointer"
                     >
