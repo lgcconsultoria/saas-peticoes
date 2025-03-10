@@ -1,6 +1,6 @@
 "use server"
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { hashSync } from "bcrypt-ts";
 
 export default async function registerAction(_prevState: unknown, formData: FormData) {
