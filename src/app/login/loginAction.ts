@@ -1,6 +1,6 @@
 "use server"
 
-import { signIn } from "../../../frontend/auth"
+import { signIn } from "next-auth/react"
 
 export default async function loginAction(_prevState: any, formData: FormData) {
     try {
