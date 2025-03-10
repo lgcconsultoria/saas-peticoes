@@ -13,9 +13,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model petition {
+  id          Int      @id @default(autoincrement())
+  processNumber String
+  type        String
+  entity      String
+  reason      String
+  description String   @db.Text
+  arguments   String   @db.Text
+  request     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        user     @relation(fields: [userId], references: [id])
+  userId      Int
+}
+
 model user {
   id    Int     @id @default(autoincrement())
   name  String
   email String  @unique
   password String
+  petition petition[]
 }
