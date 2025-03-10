@@ -1,7 +1,9 @@
 "use server"
 
-import db from "../../../lib/db";
+import { PrismaClient } from "@prisma/client";
 import { hashSync } from "bcrypt-ts";
+
+const db = new PrismaClient();
 
 export default async function registerAction(_prevState: any, formData: FormData) {
   const entries = Array.from(formData.entries());

@@ -1,32 +1,21 @@
-import db from "../../../lib/db";
-import { compareSync } from "bcrypt-ts";
+"use server"
 
-type User = {
-    name: string;
-    email: string;
-    password?: string;
-}
+import { signIn } from "../../../auth"
 
-export async function findUserByCredentials(email: string, password: string): Promise<User | null> {
-
-    const user = await db.user.findFirst({
-        where: {
-            email
+export default async function loginAction(_prevState: any, formData: FormData) {
+    try {
+        await signIn("credentials", {
+            email: formData.get("email") as string,
+            password: formData.get("password") as string,
+            redirect: true,
+            redirectTo: "/dashboard"
+        })
+        
+        return { success: true }
+    } catch (error) {
+        return {
+            message: "Email ou senha inválidos",
+            success: false
         }
-    })
-
-    if (!user) {
-        return null
     }
-
-    const passwordMatch = compareSync(password, user.password)
-
-    if (passwordMatch) {
-        return { email: user.email, name: user.name! };
-    }
-
-    return null;
 }
-
-
-

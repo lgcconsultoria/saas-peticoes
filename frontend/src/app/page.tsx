@@ -3,18 +3,33 @@
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signIn('credentials', {
-      email,
-      password,
-      callbackUrl: '/dashboard'
-    });
+    setError('');
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false
+      });
+
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      setError('Ocorreu um erro ao fazer login');
+    }
   };
 
   return (
@@ -26,6 +41,11 @@ export default function Login() {
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <input
