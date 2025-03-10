@@ -1,6 +1,6 @@
 "use server"
 
-import { signIn } from "../../../auth"
+import { signIn } from "../../../frontend/auth"
 
 export default async function loginAction(_prevState: any, formData: FormData) {
     try {

@@ -1,9 +1,7 @@
 "use server"
 
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { hashSync } from "bcrypt-ts";
-
-const db = new PrismaClient();
 
 export default async function registerAction(_prevState: any, formData: FormData) {
   const entries = Array.from(formData.entries());
@@ -16,7 +14,7 @@ export default async function registerAction(_prevState: any, formData: FormData
     }
   }
 
-  const user = await db.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: {
       email: data.email,
     },
@@ -29,7 +27,7 @@ export default async function registerAction(_prevState: any, formData: FormData
     }
   }
 
-  await db.user.create({
+  await prisma.user.create({
     data: {
       name: data.name,
       email: data.email,
