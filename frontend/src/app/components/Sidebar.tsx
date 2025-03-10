@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileAlt, faFolder, faCog, faUser } from "@fortawesome/free-solid-svg-icons"
+import { getServerSession } from "next-auth";
+import LogoutButton from "./LogoutButton";
 
-export default function Sidebar() {
+export default async function Sidebar() {
+
+  const session = await getServerSession()
   
   return (
     <div className="md:flex md:flex-shrink-0">
@@ -39,8 +43,8 @@ export default function Sidebar() {
           <div className="flex items-center">
             <FontAwesomeIcon icon={faUser} className="h-8 w-8 rounded-full bg-blue-600 text-white" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-white">Usuário Demo</p>
-              <a href="#" className="text-xs text-blue-200 hover:text-white">Sair</a>
+              <p className="text-sm font-medium text-white">{session?.user?.name}</p>
+              <LogoutButton />
             </div>
           </div>
         </div>

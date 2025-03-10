@@ -1,5 +1,7 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import prisma from "@/lib/prisma"
+import { compareSync } from "bcrypt-ts"
 
 const handler = NextAuth({
   pages: {
@@ -13,28 +15,33 @@ const handler = NextAuth({
         password: { label: "Password", type: "password", placeholder: "Password" }
       },
       async authorize(credentials) {
-        if(!credentials) {
-          return null
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email e senha são obrigatórios")
         }
 
-          return null
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email
+          }
+        })
+
+        if (!user || !user.password) {
+          throw new Error("Usuário não encontrado")
+        }
+
+        const isPasswordValid = compareSync(credentials.password, user.password)
+
+        if (!isPasswordValid) {
+          throw new Error("Senha incorreta")
+        }
+
+        return {
+          id: user.id.toString(),
+          email: user.email,
+          name: user.name
+        }
       }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.email = token.id as string;
-      }
-      return session;
-    }
-  }
-})
+    })
+  ]})
 
 export { handler as GET, handler as POST }

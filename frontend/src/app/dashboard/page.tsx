@@ -3,8 +3,17 @@ import SearchPetition from '../components/SearchPetition';
 import TypePetition from '../components/TypePetition';
 import NewPetition from '../components/NewPetition';
 import PreviewPetition from '../components/PreviewPetition';
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 
-export default function Dashboard() {
+export default async function Dashboard() {
+
+  const session = await getServerSession()
+
+  if (!session) {
+    redirect('/')
+  }
+  
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
