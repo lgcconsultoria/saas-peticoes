@@ -2,7 +2,7 @@
 
 import { signIn } from "next-auth/react"
 
-export default async function loginAction(_prevState: any, formData: FormData) {
+export default async function loginAction(_prevState: unknown, formData: FormData) {
     try {
         await signIn("credentials", {
             email: formData.get("email") as string,
@@ -12,7 +12,7 @@ export default async function loginAction(_prevState: any, formData: FormData) {
         })
         
         return { success: true }
-    } catch (error) {
+    } catch {
         return {
             message: "Email ou senha inválidos",
             success: false

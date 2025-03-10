@@ -27,7 +27,7 @@ export default function Login() {
       } else {
         router.push('/dashboard');
       }
-    } catch (error) {
+    } catch {
       setError('Ocorreu um erro ao fazer login');
     }
   };
