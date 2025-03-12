@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faDownload, faSpinner, faSave } from "@fortawesome/free-solid-svg-icons"
+import { faEdit, faDownload, faSave } from "@fortawesome/free-solid-svg-icons"
 
 export default function PreviewPetition({ processNumber, entity, reason, description, argumentsText, request }: { processNumber: string, entity: string, reason: string, description: string, argumentsText: string, request: string }) {
   return (
