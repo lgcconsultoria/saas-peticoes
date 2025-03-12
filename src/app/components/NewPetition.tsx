@@ -1,9 +1,49 @@
+"use client"
+
+import { useState } from "react"
+import { prisma } from "@/lib/prisma"
+
 export default function NewPetition () {
+  const [processNumber, setProcessNumber] = useState("");
+  const [entity, setEntity] = useState("");
+  const [reason, setReason] = useState("");
+  const [description, setDescription] = useState("");
+  const [argumentsText, setArgumentsText] = useState("");
+  const [request, setRequest] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setLoading(true);
+
+    try {
+      const newPetition = await prisma.petition.create({
+        data: {
+          processNumber,
+          type: "recurso",
+          entity,
+          reason,
+          description,
+          arguments: argumentsText,
+          request,
+          userId: 1,
+        },
+      });
+
+      console.log("Petição criada com sucesso:", newPetition);
+    } catch (error) {
+      console.error("Erro ao salvar a petição:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div id="formulario-peticao" className="bg-white rounded-lg shadow-md p-6 mb-8">
       <h3 className="text-xl font-semibold text-gray-800 mb-6">Nova Petição</h3>
 
-      <form>
+      <form onSubmit={handleSubmit}>
         <div className="mb-6">
           <label htmlFor="tipo-peticao" className="block text-sm font-medium text-gray-700 mb-2">
             Tipo de Petição
@@ -27,7 +67,9 @@ export default function NewPetition () {
             </label>
             <input 
               type="text" 
-              id="processo" 
+              id="processo"
+              value={processNumber} 
+              onChange={(e) => setProcessNumber(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -37,7 +79,9 @@ export default function NewPetition () {
             </label>
             <input 
               type="text" 
-              id="orgao" 
+              id="orgao"
+              value={entity}
+              onChange={(e) => setEntity(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -49,7 +93,9 @@ export default function NewPetition () {
           </label>
           <input 
             type="text" 
-            id="motivo" 
+            id="motivo"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -61,6 +107,8 @@ export default function NewPetition () {
           <textarea 
             id="fatos" 
             rows={4}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           ></textarea>
         </div>
@@ -72,6 +120,8 @@ export default function NewPetition () {
           <textarea 
             id="argumentos" 
             rows={4}
+            value={argumentsText}
+            onChange={(e) => setArgumentsText(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           ></textarea>
         </div>
@@ -83,6 +133,8 @@ export default function NewPetition () {
           <textarea 
             id="pedido" 
             rows={3}
+            value={request}
+            onChange={(e) => setRequest(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           ></textarea>
         </div>
@@ -98,7 +150,7 @@ export default function NewPetition () {
             type="submit"
             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
           >
-            Gerar Petição
+            {loading ? "Salvando..." : "Gerar Petição"}
           </button>
         </div>
       </form>

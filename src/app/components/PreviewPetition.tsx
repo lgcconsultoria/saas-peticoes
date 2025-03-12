@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faDownload, faSpinner, faSave } from "@fortawesome/free-solid-svg-icons"
 
-export default function PreviewPetition() {
+export default function PreviewPetition({ processNumber, entity, reason, description, argumentsText, request }: { processNumber: string, entity: string, reason: string, description: string, argumentsText: string, request: string }) {
   return (
     <div id="previa-peticao" className="bg-white rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-6">
@@ -19,16 +19,12 @@ export default function PreviewPetition() {
       </div>
 
       <div className="border border-gray-200 rounded-md p-6 bg-gray-50 min-h-[400px]">
-        <div className="flex justify-center items-center h-full cursor-pointer">
-          <FontAwesomeIcon icon={faSpinner} width={16} height={16} className="fa-spin text-blue-600 text-3xl" />
-        </div>
-
-        <div className="text-center mb-8">
-          <p className="text-gray-400 italic">
-            A prévia da sua petição aparecerá aqui após o preenchimento do
-            formulário.
-          </p>
-        </div>
+        <p><strong>Número do Processo:</strong> {processNumber}</p>
+        <p><strong>Órgão/Entidade:</strong> {entity}</p>
+        <p><strong>Motivo:</strong> {reason}</p>
+        <p><strong>Descrição dos Fatos:</strong> {description}</p>
+        <p><strong>Argumentos Jurídicos:</strong> {argumentsText}</p>
+        <p><strong>Pedido:</strong> {request}</p>
       </div>
 
       <div className="mt-4 flex justify-end">

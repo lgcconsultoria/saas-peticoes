@@ -27,7 +27,7 @@ export default async function Dashboard() {
             <SearchPetition />
             <TypePetition />
             <NewPetition />
-            <PreviewPetition />
+            <PreviewPetition processNumber={''} entity={''} reason={''} description={''} argumentsText={''} request={''} />
           </div>
         </main>
       </div>
