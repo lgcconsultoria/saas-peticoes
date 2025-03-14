@@ -8,7 +8,11 @@
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
-!.yarn/versions
+!.yarn/
+
+python_app/venv/
+python_app/__pycache__/
+python_app/.venv/
 
 # testing
 /coverage

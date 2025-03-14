@@ -7,7 +7,10 @@ export default async function registerAction(_prevState: unknown, formData: Form
   const entries = Array.from(formData.entries());
   const data = Object.fromEntries(entries) as {name: string, email: string, password: string};
   
+  console.log("Tentativa de registro para:", data.email);
+  
   if (!data.name || !data.email || !data.password) {
+    console.log("Dados incompletos no registro");
     return {
         message: "Preencha todos os campos.",
         success: false
@@ -21,24 +24,33 @@ export default async function registerAction(_prevState: unknown, formData: Form
   });
   
   if (user) {
+    console.log("Usuário já existe:", data.email);
     return {
         message: "Usuário já existe",
         success: false
     }
   }
 
+  // Usar um salt específico para garantir consistência
+  const saltRounds = 10;
+  const hashedPassword = hashSync(data.password, saltRounds);
+  
+  console.log("Criando usuário:", data.email);
+  console.log("Senha hash gerada:", hashedPassword.substring(0, 10) + "...");
+  
   await prisma.user.create({
     data: {
       name: data.name,
       email: data.email,
-      password: hashSync(data.password),
+      password: hashedPassword,
     },
   });
 
+  console.log("Usuário criado com sucesso:", data.email);
+  
   return {
     message: "Usuário criado com sucesso",
     success: true
   }
-
 }
 
