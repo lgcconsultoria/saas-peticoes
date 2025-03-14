@@ -16,7 +16,7 @@ export default function Register() {
 
         <div className="text-center mt-4">
           <Link
-            href="/"
+            href="/login"
             className="font-medium text-indigo-600 hover:text-indigo-500"
           >
             Já tem uma conta? Faça login
