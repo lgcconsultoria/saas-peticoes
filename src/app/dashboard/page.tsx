@@ -2,7 +2,6 @@ import Sidebar from '../components/Sidebar';
 import SearchPetition from '../components/SearchPetition';
 import TypePetition from '../components/TypePetition';
 import NewPetition from '../components/NewPetition';
-import PreviewPetition from '../components/PreviewPetition';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 
@@ -27,7 +26,6 @@ export default async function Dashboard() {
             <SearchPetition />
             <TypePetition />
             <NewPetition />
-            <PreviewPetition processNumber={''} entity={''} reason={''} description={''} argumentsText={''} request={''} />
           </div>
         </main>
       </div>
