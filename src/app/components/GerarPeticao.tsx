@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 interface Cliente {
   id: string;
   nome: string;
-  [key: string]: any;
+  [key: string]: string | number;
 }
 
 interface PeticaoResponse {
@@ -32,6 +32,11 @@ const GerarPeticao = () => {
   const [sucesso, setSucesso] = useState<PeticaoResponse | null>(null);
 
   useEffect(() => {
+    if (!session) {
+      setErro('Usuário não autenticado');
+      return;
+    }
+
     const carregarDados = async () => {
       try {
         // Carregar clientes
@@ -55,7 +60,7 @@ const GerarPeticao = () => {
     };
 
     carregarDados();
-  }, []);
+  }, [session]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

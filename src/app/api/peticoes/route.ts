@@ -74,7 +74,6 @@ export async function POST(request: NextRequest) {
     const {
       peticao_id,
       nome_arquivo,
-      download_url,
       cliente_id,
       template_id,
       dados_peticao

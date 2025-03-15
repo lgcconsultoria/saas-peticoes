@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import * as docx from 'docx';
-import { saveAs } from 'file-saver';
 
 const prisma = new PrismaClient();
 

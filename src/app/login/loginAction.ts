@@ -1,7 +1,8 @@
 "use server"
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+// Removendo a importação não utilizada
+// import { cookies } from "next/headers";
 
 export default async function loginAction(_prevState: unknown, formData: FormData) {
     try {
