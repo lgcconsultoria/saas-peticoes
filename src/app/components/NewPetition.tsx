@@ -12,6 +12,7 @@ export default function NewPetition() {
   const [argumentsText, setArgumentsText] = useState("");
   const [request, setRequest] = useState("");
   const [loading, setLoading] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
   const [error, setError] = useState("");
   const [peticaoGerada, setPeticaoGerada] = useState("");
   const [peticaoId, setPeticaoId] = useState<number | null>(null);
@@ -65,7 +66,7 @@ export default function NewPetition() {
     if (!peticaoId || !peticaoGerada) return;
 
     try {
-      setLoading(true);
+      setDownloadLoading(true);
       
       // Chamar a API para gerar o documento DOCX
       const response = await fetch('/api/peticoes/download', {
@@ -107,7 +108,7 @@ export default function NewPetition() {
       console.error("Erro ao baixar o documento:", error);
       setError((error as Error).message);
     } finally {
-      setLoading(false);
+      setDownloadLoading(false);
     }
   };
 
@@ -256,7 +257,7 @@ export default function NewPetition() {
             request={request}
             content={peticaoGerada}
             onDownload={handleDownload}
-            isLoading={loading}
+            isLoading={downloadLoading}
           />
         </div>
       )}
