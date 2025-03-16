@@ -56,17 +56,17 @@ export default function Home() {
             {/* Header/Navbar */}
             <header className="bg-white shadow-sm">
                 <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Top">
-                    <div className="flex w-full items-center justify-between border-b border-indigo-500 py-6 lg:border-none">
+                    <div className="flex w-full items-center justify-between border-b border-blue-500 py-6 lg:border-none">
                         <div className="flex items-center">
-                            <span className="text-2xl font-bold text-indigo-600">JusPetições</span>
+                            <span className="text-2xl font-bold text-blue-600">PeticIA Fácil</span>
                             <div className="ml-10 hidden space-x-8 lg:block">
-                                <a href="#features" className="text-base font-medium text-gray-700 hover:text-indigo-600">
+                                <a href="#features" className="text-base font-medium text-gray-700 hover:text-blue-600">
                                     Recursos
                                 </a>
-                                <a href="#testimonials" className="text-base font-medium text-gray-700 hover:text-indigo-600">
+                                <a href="#testimonials" className="text-base font-medium text-gray-700 hover:text-blue-600">
                                     Depoimentos
                                 </a>
-                                <a href="#pricing" className="text-base font-medium text-gray-700 hover:text-indigo-600">
+                                <a href="#pricing" className="text-base font-medium text-gray-700 hover:text-blue-600">
                                     Preços
                                 </a>
                             </div>
@@ -74,7 +74,7 @@ export default function Home() {
                         <div className="flex items-center space-x-4">
                             <Link
                                 href="/login"
-                                className="inline-block rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white hover:bg-indigo-700"
+                                className="inline-block rounded-md border border-transparent bg-blue-600 px-4 py-2 text-base font-medium text-white hover:bg-blue-700"
                             >
                                 Entrar
                             </Link>
@@ -87,13 +87,13 @@ export default function Home() {
                         </div>
                     </div>
                     <div className="flex flex-wrap justify-center space-x-6 py-4 lg:hidden">
-                        <a href="#features" className="text-base font-medium text-gray-700 hover:text-indigo-600">
+                        <a href="#features" className="text-base font-medium text-gray-700 hover:text-blue-600">
                             Recursos
                         </a>
-                        <a href="#testimonials" className="text-base font-medium text-gray-700 hover:text-indigo-600">
+                        <a href="#testimonials" className="text-base font-medium text-gray-700 hover:text-blue-600">
                             Depoimentos
                         </a>
-                        <a href="#pricing" className="text-base font-medium text-gray-700 hover:text-indigo-600">
+                        <a href="#pricing" className="text-base font-medium text-gray-700 hover:text-blue-600">
                             Preços
                         </a>
                     </div>
@@ -101,7 +101,7 @@ export default function Home() {
             </header>
 
             {/* Hero Section */}
-            <div className="relative isolate overflow-hidden bg-gradient-to-b from-indigo-100/20 pt-14">
+            <div className="relative isolate overflow-hidden bg-gradient-to-b from-blue-100/20 pt-14">
                 <div className="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
                     <div className="mx-auto max-w-2xl text-center">
                         <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
@@ -114,13 +114,13 @@ export default function Home() {
                         <div className="mt-10 flex items-center justify-center gap-x-6">
                             <Link
                                 href="/dashboard"
-                                className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                className="rounded-md bg-blue-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                             >
                                 Acessar Gerador de Petições
                             </Link>
                             <Link
                                 href="/register"
-                                className="rounded-md bg-white px-6 py-3 text-lg font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-gray-50"
+                                className="rounded-md bg-white px-6 py-3 text-lg font-semibold text-blue-600 shadow-sm ring-1 ring-inset ring-blue-200 hover:bg-gray-50"
                             >
                                 Criar Conta
                             </Link>
@@ -136,7 +136,7 @@ export default function Home() {
             <div id="features" className="bg-white py-24 sm:py-32">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">
                     <div className="mx-auto max-w-2xl lg:text-center">
-                        <h2 className="text-base font-semibold leading-7 text-indigo-600">Recursos Poderosos</h2>
+                        <h2 className="text-base font-semibold leading-7 text-blue-600">Recursos Poderosos</h2>
                         <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                             Tudo o que você precisa para criar petições de qualidade
                         </p>
@@ -149,7 +149,7 @@ export default function Home() {
                             {features.map((feature) => (
                                 <div key={feature.name} className="relative pl-16">
                                     <dt className="text-base font-semibold leading-7 text-gray-900">
-                                        <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
+                                        <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
                                             <feature.icon className="h-6 w-6 text-white" aria-hidden="true" />
                                         </div>
                                         {feature.name}
@@ -166,7 +166,7 @@ export default function Home() {
             <div id="testimonials" className="bg-gray-50 py-24 sm:py-32">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">
                     <div className="mx-auto max-w-2xl lg:text-center">
-                        <h2 className="text-base font-semibold leading-7 text-indigo-600">Depoimentos</h2>
+                        <h2 className="text-base font-semibold leading-7 text-blue-600">Depoimentos</h2>
                         <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                             O que nossos clientes dizem
                         </p>
@@ -194,7 +194,7 @@ export default function Home() {
             <div id="pricing" className="bg-white py-24 sm:py-32">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">
                     <div className="mx-auto max-w-2xl lg:text-center">
-                        <h2 className="text-base font-semibold leading-7 text-indigo-600">Preços</h2>
+                        <h2 className="text-base font-semibold leading-7 text-blue-600">Preços</h2>
                         <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                             Planos para todos os tamanhos de escritório
                         </p>
@@ -205,7 +205,7 @@ export default function Home() {
                     <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 items-center gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-2">
                         {/* Plano Básico */}
                         <div className="rounded-3xl p-8 ring-1 ring-gray-200 lg:rounded-l-3xl lg:rounded-r-none">
-                            <h3 className="text-lg font-semibold leading-8 text-indigo-600">Básico</h3>
+                            <h3 className="text-lg font-semibold leading-8 text-blue-600">Básico</h3>
                             <p className="mt-4 flex items-baseline gap-x-2">
                                 <span className="text-4xl font-bold tracking-tight text-gray-900">R$99</span>
                                 <span className="text-sm font-semibold leading-6 text-gray-600">/mês</span>
@@ -215,19 +215,19 @@ export default function Home() {
                             </p>
                             <ul className="mt-8 space-y-3 text-sm leading-6 text-gray-600">
                                 <li className="flex gap-x-3">
-                                    <svg className="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <svg className="h-6 w-5 flex-none text-blue-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                                     </svg>
                                     Até 20 petições por mês
                                 </li>
                                 <li className="flex gap-x-3">
-                                    <svg className="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <svg className="h-6 w-5 flex-none text-blue-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                                     </svg>
                                     Acesso a templates básicos
                                 </li>
                                 <li className="flex gap-x-3">
-                                    <svg className="h-6 w-5 flex-none text-indigo-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <svg className="h-6 w-5 flex-none text-blue-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                                     </svg>
                                     Suporte por email
@@ -235,7 +235,7 @@ export default function Home() {
                             </ul>
                             <Link
                                 href="/register"
-                                className="mt-8 block rounded-md py-2.5 px-3.5 text-center text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 bg-white text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-gray-50"
+                                className="mt-8 block rounded-md py-2.5 px-3.5 text-center text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 bg-white text-blue-600 shadow-sm ring-1 ring-inset ring-blue-200 hover:bg-gray-50"
                             >
                                 Começar agora
                             </Link>
@@ -253,25 +253,25 @@ export default function Home() {
                             </p>
                             <ul className="mt-8 space-y-3 text-sm leading-6 text-gray-300">
                                 <li className="flex gap-x-3">
-                                    <svg className="h-6 w-5 flex-none text-indigo-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                                     </svg>
                                     Petições ilimitadas
                                 </li>
                                 <li className="flex gap-x-3">
-                                    <svg className="h-6 w-5 flex-none text-indigo-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                                     </svg>
                                     Acesso a todos os templates
                                 </li>
                                 <li className="flex gap-x-3">
-                                    <svg className="h-6 w-5 flex-none text-indigo-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                                     </svg>
                                     Suporte prioritário
                                 </li>
                                 <li className="flex gap-x-3">
-                                    <svg className="h-6 w-5 flex-none text-indigo-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
                                     </svg>
                                     API para integração
@@ -279,7 +279,7 @@ export default function Home() {
                             </ul>
                             <Link
                                 href="/register"
-                                className="mt-8 block rounded-md py-2.5 px-3.5 text-center text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 bg-indigo-600 text-white shadow-sm hover:bg-indigo-500"
+                                className="mt-8 block rounded-md py-2.5 px-3.5 text-center text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 bg-blue-600 text-white shadow-sm hover:bg-blue-500"
                             >
                                 Começar agora
                             </Link>

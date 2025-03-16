@@ -29,7 +29,7 @@ export default function Login() {
         <div className="text-center mt-4">
           <Link
             href="/register"
-            className="font-medium text-indigo-600 hover:text-indigo-500"
+            className="font-medium text-blue-600 hover:text-blue-500"
           >
             Não tem uma conta? Cadastre-se
           </Link>
