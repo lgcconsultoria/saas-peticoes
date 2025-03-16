@@ -41,7 +41,9 @@ export default async function Sidebar() {
         </div>
         <div className="p-4 border-t border-blue-700">
           <div className="flex items-center">
-            <FontAwesomeIcon icon={faUser} className="h-8 w-8 rounded-full bg-blue-600 text-white" />
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600">
+              <FontAwesomeIcon icon={faUser} width={16} height={16} className="text-white" />
+            </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-white">{session?.user?.name}</p>
               <LogoutButton />

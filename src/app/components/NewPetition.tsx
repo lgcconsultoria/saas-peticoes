@@ -3,6 +3,14 @@
 import { useState } from "react"
 import PreviewPetition from "./PreviewPetition"
 
+// Mapeamento dos tipos de petição para seus nomes completos
+const TIPOS_PETICAO = {
+  recurso: "Recurso Administrativo",
+  reajuste: "Pedido de Reajustamento",
+  contrarrazoes: "Contrarrazões",
+  defesa: "Defesa de Sanções"
+};
+
 export default function NewPetition() {
   const [tipoPeticao, setTipoPeticao] = useState("recurso");
   const [processNumber, setProcessNumber] = useState("");
@@ -29,6 +37,9 @@ export default function NewPetition() {
         throw new Error("Todos os campos são obrigatórios");
       }
 
+      // Obter o nome completo do tipo de petição
+      const tipoCompleto = TIPOS_PETICAO[tipoPeticao as keyof typeof TIPOS_PETICAO];
+
       // Chamar a API para gerar a petição
       const response = await fetch('/api/peticoes/gerar', {
         method: 'POST',
@@ -36,7 +47,7 @@ export default function NewPetition() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          tipoPeticao,
+          tipoPeticao: tipoCompleto, // Enviando o nome completo
           processNumber,
           entity,
           reason,

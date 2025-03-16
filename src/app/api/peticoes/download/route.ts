@@ -23,6 +23,9 @@ async function getUserId(): Promise<number> {
 
 // Função para processar o texto e criar parágrafos formatados
 function processTextToDocumentParagraphs(content: string): docx.Paragraph[] {
+  // Pré-processamento para remover formatação Markdown e aplicar formatação DOCX
+  content = preprocessMarkdown(content);
+  
   // Dividir o conteúdo em linhas
   const lines = content.split('\n');
   const paragraphs: docx.Paragraph[] = [];
@@ -174,14 +177,13 @@ function processTextToDocumentParagraphs(content: string): docx.Paragraph[] {
         ],
       });
     } else {
+      // Processar formatação inline (negrito, itálico, etc.)
+      const textRuns = processInlineFormatting(line.trim());
+      
       // Criar parágrafo para texto normal
       paragraph = new docx.Paragraph({
         ...baseOptions,
-        children: [
-          new docx.TextRun({
-            text: line.trim(),
-          }),
-        ],
+        children: textRuns,
       });
     }
     
@@ -194,6 +196,70 @@ function processTextToDocumentParagraphs(content: string): docx.Paragraph[] {
   });
   
   return paragraphs;
+}
+
+// Função para pré-processar o texto Markdown
+function preprocessMarkdown(text: string): string {
+  // Processar cabeçalhos Markdown (# Título)
+  text = text.replace(/^#+\s+(.*?)$/gm, '$1');
+  
+  // Processar listas Markdown
+  text = text.replace(/^\s*[-*+]\s+(.*?)$/gm, '• $1');
+  text = text.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '$1. $2');
+  
+  // Processar links Markdown [texto](url)
+  text = text.replace(/\[(.*?)\]\((.*?)\)/g, '$1');
+  
+  // Processar imagens Markdown ![alt](url)
+  text = text.replace(/!\[(.*?)\]\((.*?)\)/g, '$1');
+  
+  // Processar blocos de código
+  text = text.replace(/```[\s\S]*?```/g, (match) => {
+    return match.replace(/```([\s\S]*?)```/g, '$1').trim();
+  });
+  
+  // Processar código inline
+  text = text.replace(/`(.*?)`/g, '$1');
+  
+  // Processar citações
+  text = text.replace(/^\s*>\s+(.*?)$/gm, '$1');
+  
+  // Processar linhas horizontais
+  text = text.replace(/^\s*[-*_]{3,}\s*$/gm, '');
+  
+  // Remover espaços extras
+  text = text.replace(/\n{3,}/g, '\n\n');
+  
+  return text;
+}
+
+// Função para processar formatação inline (negrito, itálico, etc.)
+function processInlineFormatting(text: string): docx.TextRun[] {
+  // Verificar se o texto contém formatação
+  const hasBold = text.includes('**');
+  const hasItalic = text.includes('*');
+  
+  // Remover as marcações de formatação do texto
+  let cleanText = text;
+  
+  // Remover marcações de negrito primeiro (para não confundir com itálico)
+  if (hasBold) {
+    cleanText = cleanText.replace(/\*\*(.*?)\*\*/g, '$1');
+  }
+  
+  // Remover marcações de itálico
+  if (hasItalic) {
+    cleanText = cleanText.replace(/\*(.*?)\*/g, '$1');
+  }
+  
+  // Criar TextRun com a formatação apropriada
+  return [
+    new docx.TextRun({
+      text: cleanText,
+      bold: hasBold,
+      italics: hasItalic && !hasBold // Aplicar itálico apenas se não for negrito
+    })
+  ];
 }
 
 export async function POST(request: NextRequest) {

@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDownload } from "@fortawesome/free-solid-svg-icons"
+import ReactMarkdown from 'react-markdown';
 
 interface PreviewPetitionProps {
   processNumber: string;
@@ -45,7 +46,7 @@ export default function PreviewPetition({
       <div className="border border-gray-200 rounded-md p-6 bg-gray-50 min-h-[400px] whitespace-pre-wrap">
         {content ? (
           <div className="prose max-w-none">
-            {content}
+            <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         ) : (
           <div>
