@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Petições</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .card-tipo-peticao {
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .card-tipo-peticao:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .preview-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-5">
+        <header class="text-center mb-5">
+            <h1 class="display-4">Gerador de Petições</h1>
+            <p class="lead">Crie petições jurídicas de forma rápida e eficiente com assistência de IA</p>
+        </header>
+
+        <!-- Alerta de erro -->
+        <div id="alert-error" class="alert alert-danger" style="display: none;" role="alert">
+            <span id="error-message"></span>
+        </div>
+
+        <!-- Tipos de Petição -->
+        <section id="tipos-peticao" class="mb-5">
+            <h2 class="mb-4">Escolha um tipo de petição</h2>
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="card card-tipo-peticao h-100" data-tipo="recurso">
+                        <div class="card-body text-center">
+                            <div class="text-primary mb-3">
+                                <i class="fas fa-gavel fa-3x"></i>
+                            </div>
+                            <h5 class="card-title">Recurso Administrativo</h5>
+                            <p class="card-text">Conteste decisões administrativas com argumentos sólidos.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card card-tipo-peticao h-100" data-tipo="impugnacao">
+                        <div class="card-body text-center">
+                            <div class="text-danger mb-3">
+                                <i class="fas fa-ban fa-3x"></i>
+                            </div>
+                            <h5 class="card-title">Impugnação ao Edital</h5>
+                            <p class="card-text">Questione cláusulas e exigências de editais de licitação.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card card-tipo-peticao h-100" data-tipo="contrarrazoes">
+                        <div class="card-body text-center">
+                            <div class="text-success mb-3">
+                                <i class="fas fa-balance-scale fa-3x"></i>
+                            </div>
+                            <h5 class="card-title">Contrarrazões</h5>
+                            <p class="card-text">Responda a recursos administrativos de forma eficaz.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card card-tipo-peticao h-100" data-tipo="representacao">
+                        <div class="card-body text-center">
+                            <div class="text-warning mb-3">
+                                <i class="fas fa-exclamation-triangle fa-3x"></i>
+                            </div>
+                            <h5 class="card-title">Representação</h5>
+                            <p class="card-text">Denuncie irregularidades em processos licitatórios.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Formulário de Petição -->
+        <section id="formulario-peticao" class="form-section mb-5">
+            <h2 class="mb-4">Preencha os dados da petição</h2>
+            <form id="form-peticao">
+                <input type="hidden" id="tipo-peticao" name="tipo">
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="tipo" class="form-label">Tipo de Petição <span class="text-danger">*</span></label>
+                        <select class="form-select" id="tipo" name="tipo" required>
+                            <option value="">Selecione um tipo de petição</option>
+                        </select>
+                        <div class="form-text mt-2">
+                            <span>Papel do cliente: <strong id="papel-cliente"></strong></span><br>
+                            <span>Papel da contraparte: <strong id="papel-contraparte"></strong></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="cliente" class="form-label">Cliente <span class="text-danger">*</span></label>
+                        <select class="form-select" id="cliente" name="cliente_id">
+                            <option value="">Selecione um cliente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="processo" class="form-label">Número do Processo</label>
+                        <input type="text" class="form-control" id="processo" name="referencia_processo"
+                            placeholder="Ex: 123456/2023">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="orgao" class="form-label">Órgão/Entidade</label>
+                        <input type="text" class="form-control" id="orgao" name="orgao"
+                            placeholder="Nome do órgão ou entidade">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="motivo" class="form-label">Motivo da Petição <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="motivo" name="motivo"
+                        placeholder="Descreva o motivo principal da petição" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="fatos" class="form-label">Fatos <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="fatos" name="fatos" rows="6"
+                        placeholder="Descreva detalhadamente os fatos que fundamentam a petição" required></textarea>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="autoridade" class="form-label">Autoridade Destinatária</label>
+                        <input type="text" class="form-control" id="autoridade" name="autoridade"
+                            placeholder="Nome da autoridade">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="contraparte" class="form-label">Contraparte</label>
+                        <input type="text" class="form-control" id="contraparte" name="contraparte"
+                            placeholder="Nome da contraparte">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="cidade" class="form-label">Cidade</label>
+                        <input type="text" class="form-control" id="cidade" name="cidade" placeholder="Cidade">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="data" class="form-label">Data</label>
+                        <input type="date" class="form-control" id="data" name="data">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="nome-advogado" class="form-label">Nome do Advogado</label>
+                        <input type="text" class="form-control" id="nome-advogado" name="nome_advogado"
+                            placeholder="Nome completo">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="numero-oab" class="form-label">Número OAB</label>
+                        <input type="text" class="form-control" id="numero-oab" name="numero_oab"
+                            placeholder="Ex: 123456/UF">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" id="btn-voltar" class="btn btn-outline-secondary">Voltar</button>
+                    <div>
+                        <button type="button" id="btn-limpar" class="btn btn-outline-danger me-2">Limpar</button>
+                        <button type="submit" id="btn-gerar" class="btn btn-primary">Gerar Petição</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- Prévia da Petição -->
+        <section id="previa-peticao" class="form-section mb-5">
+            <h2 class="mb-4">Prévia da Petição</h2>
+
+            <div class="d-flex justify-content-between mb-3">
+                <h4 id="titulo-previa">Petição</h4>
+                <div>
+                    <button type="button" id="btn-editar" class="btn btn-outline-primary me-2">Editar</button>
+                    <button type="button" id="btn-copiar" class="btn btn-outline-secondary me-2">Copiar</button>
+                    <button type="button" id="btn-download" class="btn btn-success me-2">Download</button>
+                    <button type="button" id="btn-salvar" class="btn btn-primary">Salvar</button>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div id="conteudo-previa" class="p-3"></div>
+            </div>
+        </section>
+
+        <!-- Lista de Petições Salvas -->
+        <section id="peticoes-salvas" class="mb-5">
+            <h2 class="mb-4">Petições Salvas</h2>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Data</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-peticoes">
+                        <!-- Será preenchido via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="sem-peticoes" class="text-center py-4 d-none">
+                <p class="text-muted">Nenhuma petição salva.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 9999;">
+        <div class="d-flex justify-content-center align-items-center h-100">
+            <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/js/templates.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Elementos do DOM
+            const tiposPeticao = document.querySelectorAll('.card-tipo-peticao');
+            const formSection = document.getElementById('formulario-peticao');
+            const previaSection = document.getElementById('previa-peticao');
+            const tipoInput = document.getElementById('tipo-peticao');
+            const formPeticao = document.getElementById('form-peticao');
+            const btnVoltar = document.getElementById('btn-voltar');
+            const btnLimpar = document.getElementById('btn-limpar');
+            const btnEditar = document.getElementById('btn-editar');
+            const btnCopiar = document.getElementById('btn-copiar');
+            const btnDownload = document.getElementById('btn-download');
+            const btnSalvar = document.getElementById('btn-salvar');
+            const conteudoPrevia = document.getElementById('conteudo-previa');
+            const tituloPrevia = document.getElementById('titulo-previa');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const alertError = document.getElementById('alert-error');
+            const errorMessage = document.getElementById('error-message');
+            const listaPeticoes = document.getElementById('lista-peticoes');
+            const semPeticoes = document.getElementById('sem-peticoes');
+
+            // Estado da aplicação
+            let peticaoAtual = null;
+
+            // Inicialização
+            carregarPeticoes();
+
+            // Event Listeners
+            tiposPeticao.forEach(card => {
+                card.addEventListener('click', () => {
+                    const tipo = card.dataset.tipo;
+                    tipoInput.value = tipo;
+
+                    // Mostrar formulário
+                    formSection.classList.add('active');
+
+                    // Scroll para o formulário
+                    formSection.scrollIntoView({ behavior: 'smooth' });
+                });
+            });
+
+            btnVoltar.addEventListener('click', () => {
+                formSection.classList.remove('active');
+                document.getElementById('tipos-peticao').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            btnLimpar.addEventListener('click', limparFormulario);
+
+            btnEditar.addEventListener('click', () => {
+                previaSection.classList.remove('active');
+                formSection.classList.add('active');
+                formSection.scrollIntoView({ behavior: 'smooth' });
+            });
+
+            document.getElementById('btn-copiar').addEventListener('click', copiarTexto);
+
+            btnDownload.addEventListener('click', downloadPeticao);
+
+            btnSalvar.addEventListener('click', salvarPeticao);
+
+            formPeticao.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await gerarPeticao();
+            });
+
+            // Funções
+            async function gerarPeticao() {
+                // Validação básica
+                const tipo = tipoInput.value;
+                const motivo = document.getElementById('motivo').value;
+                const fatos = document.getElementById('fatos').value;
+
+                if (!tipo || !motivo || !fatos) {
+                    mostrarErro('Por favor, preencha todos os campos obrigatórios.');
+                    return;
+                }
+
+                try {
+                    mostrarLoading(true);
+
+                    // Mostrar loading
+                    mostrarLoading(true);
+
+                    // Preparar dados do formulário
+                    const formData = {
+                        tipo: tipo,
+                        motivo: motivo,
+                        fatos: fatos,
+                        autoridade: document.getElementById('autoridade').value,
+                        contraparte: document.getElementById('contraparte').value,
+                        cidade: document.getElementById('cidade').value,
+                        data: document.getElementById('data').value,
+                        cliente_id: document.getElementById('cliente').value,
+                        referencia_processo: document.getElementById('processo').value,
+                        orgao: document.getElementById('orgao').value
+                    };
+
+                    // Chamar API
+                    const response = await fetch('/api/gerar-peticao', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Erro ao gerar petição');
+                    }
+
+                    const data = await response.json();
+
+                    // Atualizar prévia
+                    peticaoAtual = {
+                        ...data,
+                        ...formData
+                    };
+
+                    // Verificar se o backend retornou o HTML formatado
+                    if (data.html_preview) {
+                        // Usar o HTML formatado do backend
+                        conteudoPrevia.innerHTML = data.html_preview;
+                    } else {
+                        // Fallback: montar HTML da prévia manualmente
+                        const htmlPrevia = `
+                            <h3>Petição: ${formData.tipo.charAt(0).toUpperCase() + formData.tipo.slice(1)}</h3>
+                            <p><strong>Processo:</strong> ${formData.referencia_processo || 'N/A'}</p>
+                            <p><strong>Órgão:</strong> ${formData.orgao || 'N/A'}</p>
+                            <p><strong>Motivo:</strong> ${formData.motivo}</p>
+                            
+                            <h4>Dos Fatos</h4>
+                            <p>${formData.fatos}</p>
+                            
+                            <h4>Dos Argumentos Jurídicos</h4>
+                            <div>${data.argumentos}</div>
+                            
+                            <h4>Dos Pedidos</h4>
+                            <div>${data.pedido}</div>
+                            
+                            <p><a href="${data.download_url}" class="btn btn-primary mt-3" target="_blank">
+                                <i class="fas fa-download"></i> Baixar Documento
+                            </a></p>
+                        `;
+                        conteudoPrevia.innerHTML = htmlPrevia;
+                    }
+
+                    // Adicionar link para download
+                    if (data.download_url) {
+                        const downloadLink = document.createElement('p');
+                        downloadLink.innerHTML = `<a href="${data.download_url}" class="btn btn-primary mt-3" target="_blank">
+                            <i class="fas fa-download"></i> Baixar Documento
+                        </a>`;
+                        conteudoPrevia.appendChild(downloadLink);
+                    }
+
+                    tituloPrevia.textContent = `Petição: ${formData.tipo.charAt(0).toUpperCase() + formData.tipo.slice(1)}`;
+
+                    // Mostrar prévia
+                    formSection.classList.remove('active');
+                    previaSection.classList.add('active');
+                    previaSection.scrollIntoView({ behavior: 'smooth' });
+
+                } catch (error) {
+                    mostrarErro(error.message || 'Ocorreu um erro ao gerar a petição');
+                    console.error('Erro:', error);
+                } finally {
+                    mostrarLoading(false);
+                }
+            }
+
+            async function carregarPeticoes() {
+                try {
+                    mostrarLoading(true);
+
+                    const response = await fetch('/api/peticoes');
+                    if (!response.ok) {
+                        throw new Error('Erro ao carregar petições');
+                    }
+
+                    const data = await response.json();
+
+                    if (data.peticoes && data.peticoes.length > 0) {
+                        listaPeticoes.innerHTML = '';
+
+                        data.peticoes.forEach(peticao => {
+                            const row = document.createElement('tr');
+
+                            const dataFormatada = new Date().toLocaleDateString('pt-BR');
+
+                            row.innerHTML = `
+                                <td>${peticao.nome}</td>
+                                <td>${dataFormatada}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="window.location.href='/api/download/${peticao.nome}'">
+                                        <i class="fas fa-download"></i> Download
+                                    </button>
+                                </td>
+                            `;
+
+                            listaPeticoes.appendChild(row);
+                        });
+
+                        semPeticoes.classList.add('d-none');
+                    } else {
+                        listaPeticoes.innerHTML = '';
+                        semPeticoes.classList.remove('d-none');
+                    }
+
+                } catch (error) {
+                    mostrarErro('Erro ao carregar petições');
+                    console.error('Erro:', error);
+                } finally {
+                    mostrarLoading(false);
+                }
+            }
+
+            function downloadPeticao() {
+                if (peticaoAtual && peticaoAtual.download_url) {
+                    window.location.href = peticaoAtual.download_url;
+                } else if (peticaoAtual && peticaoAtual.arquivo) {
+                    window.location.href = `/api/download/${peticaoAtual.arquivo.split('/').pop()}`;
+                } else {
+                    mostrarErro('Não foi possível baixar a petição. Tente novamente.');
+                }
+            }
+
+            function copiarTexto() {
+                if (!peticaoAtual) return;
+
+                // Obter o texto da prévia
+                const conteudo = document.getElementById('conteudo-previa');
+
+                // Criar um elemento temporário para copiar o texto
+                const tempElement = document.createElement('textarea');
+                tempElement.value = conteudo.innerText;
+                document.body.appendChild(tempElement);
+
+                // Selecionar e copiar o texto
+                tempElement.select();
+                document.execCommand('copy');
+
+                // Remover o elemento temporário
+                document.body.removeChild(tempElement);
+
+                // Mostrar feedback ao usuário
+                alert('Texto copiado para a área de transferência!');
+            }
+
+            async function salvarPeticao() {
+                if (!peticaoAtual) return;
+
+                try {
+                    mostrarLoading(true);
+
+                    // Recarregar lista de petições
+                    await carregarPeticoes();
+
+                    alert('Petição salva com sucesso!');
+
+                } catch (error) {
+                    mostrarErro('Erro ao salvar petição');
+                    console.error('Erro:', error);
+                } finally {
+                    mostrarLoading(false);
+                }
+            }
+
+            function limparFormulario() {
+                formPeticao.reset();
+                peticaoAtual = null;
+
+                // Limpar a prévia
+                conteudoPrevia.innerHTML = '';
+
+                // Resetar o título da prévia
+                tituloPrevia.textContent = 'Petição';
+
+                // Esconder a seção de prévia se estiver visível
+                if (previaSection.classList.contains('active')) {
+                    previaSection.classList.remove('active');
+                    formSection.classList.add('active');
+                }
+            }
+
+            function mostrarLoading(show) {
+                if (show) {
+                    loadingOverlay.style.display = 'block';
+                } else {
+                    loadingOverlay.style.display = 'none';
+                }
+            }
+
+            function mostrarErro(mensagem) {
+                errorMessage.textContent = mensagem;
+                alertError.style.display = 'block';
+
+                setTimeout(() => {
+                    alertError.style.display = 'none';
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+
+</html>

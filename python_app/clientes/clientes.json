@@ -1,0 +1,302 @@
+[
+    {
+        "id": "rally",
+        "nome": "AUTO LOCADORA RALLY",
+        "cnpj": "08.714.430/0001-87",
+        "endereco": "Avenida Afonso Pena, 954, Amambaí, Campo Grande/MS, CEP: 79005-001",
+        "logo_path": "clientes/logos/rally.png",
+        "advogados": []
+    },
+    {
+        "id": "topxtopo",
+        "nome": "TOP X",
+        "cnpj": "18.713.845/0001-90",
+        "endereco": "Avenida Eduardo Elias Zahran, 3032, Jardim São Lourenço, Campo Grande/MS, CEP: 79041-000",
+        "logo_path": "clientes/logos/topxtopo.png",
+        "advogados": []
+    },
+    {
+        "id": "access",
+        "nome": "ACCESS COBRANCA E CONTACT CENTER",
+        "cnpj": "02.502.520/0001-28",
+        "endereco": "Rua Orestes Guimarães, 789, América, Joinville/SC, CEP: 89204-060",
+        "logo_path": "clientes/logos/access.png",
+        "advogados": []
+    },
+    {
+        "id": "inovar",
+        "nome": "INOVAR REFRIGERACAO",
+        "cnpj": "23.070.991/0001-84",
+        "endereco": "Avenida Salgado Filho, 891, Amambaí, Campo Grande/MS, CEP: 79005-300",
+        "logo_path": "clientes/logos/inovar.png",
+        "advogados": []
+    },
+    {
+        "id": "dual",
+        "nome": "DUAL SERVIÇOS",
+        "cnpj": "23.476.403/0001-07",
+        "endereco": "Rua Epitácio Pessoa, 383, Vila Vilas Boas, Campo Grande/MS, CEP: 79051-090",
+        "logo_path": "clientes/logos/dual.png",
+        "advogados": []
+    },
+    {
+        "id": "nkconstrutora",
+        "nome": "NK CONSTRUTORA",
+        "cnpj": "07.167.262/0001-94",
+        "endereco": "AMALIA PILOTO BENITES BR, 163, polo empresarial, CAARAPO/MS, CEP: 79940-000",
+        "logo_path": "clientes/logos/nkconstrutora.png",
+        "advogados": []
+    },
+    {
+        "id": "m2h",
+        "nome": "M2H SOLUCOES AMBIENTAIS LTDA",
+        "cnpj": "44.068.000/0001-07",
+        "endereco": "Rua Gonçalo Alves, 231, Vivendas do Bosque, Campo Grande/MS, CEP: 79021-182",
+        "logo_path": "clientes/logos/m2h.png",
+        "advogados": []
+    },
+    {
+        "id": "lmbarbosa",
+        "nome": "L M BARBOSA REFRIGERACAO",
+        "cnpj": "28832989000119",
+        "endereco": "RUA PRIMEIRO DE JULHO, 498, VILA CARVALHO, CAMPO GRANDE/MS, CEP: 79005-610",
+        "logo_path": "clientes/logos/lmbarbosa.png",
+        "advogados": []
+    },
+    {
+        "id": "descartamed",
+        "nome": "DESCARTAMED COMERCIO E REPRESENTACAO LTDA",
+        "cnpj": "11.815.774/0001-97",
+        "endereco": "Rua não informada, 1026, Coophavila II, Cidade não informada/MS, CEP: 79097-070",
+        "logo_path": "clientes/logos/descartamed.png",
+        "advogados": []
+    },
+    {
+        "id": "licitatech",
+        "nome": "LICITATECH PROCESSAMENTO DE DADOS",
+        "cnpj": "53046308000134",
+        "endereco": "RUA SAPOTI, 114, MONTE CASTELO, CAMPO GRANDE/MS, CEP: 79010-111",
+        "logo_path": "clientes/logos/licitatech.png",
+        "advogados": []
+    },
+    {
+        "id": "santacruz",
+        "nome": "SANTA CRUZ",
+        "cnpj": "24.610.826/0001-30",
+        "endereco": "Avenida Marechal Deodoro, 5334, Vila São Jorge da Lagoa, Campo Grande/MS, CEP: 79095-000",
+        "logo_path": "clientes/logos/santacruz.png",
+        "advogados": []
+    },
+    {
+        "id": "crkempreendimentos",
+        "nome": "CRK EMPREENDIMENTOS E ASFALTO USINADO",
+        "cnpj": "32.194.603/0001-68",
+        "endereco": "Rodovia MS 278 KM 02, Entrada BR 163 S/N, 000, ZONA RURAL, Caarapó/MS, CEP: 79940-000",
+        "logo_path": "clientes/logos/crkempreendimentos.png",
+        "advogados": []
+    },
+    {
+        "id": "olipolengenharia",
+        "nome": "OLIPOL ENGENHARIA E COMERCIO LTDA",
+        "cnpj": "62688528000152",
+        "endereco": "Rua Octávio de Freitas Filho, 328, Pólo Industrial Guilherme Müller Filho, Pirassununga/SP, CEP: 13632-622",
+        "logo_path": "clientes/logos/olipolengenharia.png",
+        "advogados": []
+    },
+    {
+        "id": "cnl",
+        "nome": "ConLicitação",
+        "cnpj": "03.635.879/0001-36",
+        "endereco": "Estrada do Jaguaré, 422, Jardim Jussara, São Paulo/SP, CEP: 05525-080",
+        "logo_path": "clientes/logos/cnl.png",
+        "advogados": []
+    },
+    {
+        "id": "dipolo",
+        "nome": "DIPOLO PRODUTOS ELETRICOS",
+        "cnpj": "54433105000163",
+        "endereco": "Av. Rosário Congro, 2515, Jd. Angélica, Três Lagoas/MS, CEP: 79611-009",
+        "logo_path": "clientes/logos/dipolo.png",
+        "advogados": []
+    },
+    {
+        "id": "alfaneoservicos",
+        "nome": "ALFANEO INTELIGENCIA ARTIFICIAL",
+        "cnpj": "36.764.019/0001-51",
+        "endereco": "Rua Pedro Celestino, 3607, Centro, Campo Grande/MS, CEP: 79004-560",
+        "logo_path": "clientes/logos/alfaneoservicos.png",
+        "advogados": []
+    },
+    {
+        "id": "1643384963681x301322380423725060",
+        "nome": "AUTO LOCADORA RALLY",
+        "cnpj": "08.714.430/0001-87",
+        "endereco": "Avenida Afonso Pena, 954, Amambaí, Campo Grande/MS, CEP: 79005-001",
+        "telefone": "(67) 3042-3032",
+        "email": "rallylocadora@hotmail.com",
+        "advogados": [
+            {
+                "nome": "DOUGLAS SENTURIÃO",
+                "oab": "OAB/MS 73764"
+            }
+        ]
+    },
+    {
+        "id": "1643401982143x898799972538384400",
+        "nome": "TOP X",
+        "cnpj": "18.713.845/0001-90",
+        "endereco": "Avenida Eduardo Elias Zahran, 3032, Jardim São Lourenço, Campo Grande/MS, CEP: 79041-000",
+        "telefone": "(67) 3042-1263",
+        "email": "adm@topxtopografia.com.br",
+        "advogados": [
+            {
+                "nome": "ADVOGADO TOP X",
+                "oab": "OAB/MS 12345"
+            }
+        ]
+    },
+    {
+        "id": "1643494660293x709201566183981000",
+        "nome": "ACCESS COBRANCA E CONTACT CENTER",
+        "cnpj": "02.502.520/0001-28",
+        "endereco": "Rua Orestes Guimarães, 789, América, Joinville/SC, CEP: 89204-060",
+        "telefone": "(47) 3426-1130",
+        "email": "glener@targetconsulting.com.br",
+        "advogados": []
+    },
+    {
+        "id": "1643497697963x846432853764866000",
+        "nome": "INOVAR REFRIGERACAO",
+        "cnpj": "23.070.991/0001-84",
+        "endereco": "Avenida Salgado Filho, 891, Amambaí, Campo Grande/MS, CEP: 79005-300",
+        "telefone": "(67) 3026-7829",
+        "email": "adm.cg@refrigeracaoinovar.com.br",
+        "advogados": []
+    },
+    {
+        "id": "1643497697963x846432853764866001",
+        "nome": "DUAL SERVIÇOS",
+        "cnpj": "23.476.403/0001-07",
+        "endereco": "Rua Epitácio Pessoa, 383, Vila Vilas Boas, Campo Grande/MS, CEP: 79051-090",
+        "telefone": "(67) 9982-8077",
+        "email": "ferzelig@hotmail.com",
+        "advogados": []
+    },
+    {
+        "id": "1648389008166x454916163869081600",
+        "nome": "NK CONSTRUTORA",
+        "cnpj": "07.167.262/0001-94",
+        "endereco": "AMALIA PILOTO BENITES BR, 163, polo empresarial, CAARAPO/MS, CEP: 79940-000",
+        "telefone": "(67) 3453-1010",
+        "email": "nkconstrutora@outlook.com",
+        "advogados": []
+    },
+    {
+        "id": "1652889499651x882204922798932000",
+        "nome": "M2H SOLUCOES AMBIENTAIS LTDA",
+        "cnpj": "44.068.000/0001-07",
+        "endereco": "Rua Gonçalo Alves, 231, Vivendas do Bosque, Campo Grande/MS, CEP: 79021-182",
+        "telefone": "(67) 9283-9193",
+        "email": "MARCELOCGF@HOTMAIL.COM",
+        "advogados": []
+    },
+    {
+        "id": "1657811173730x348930427764604900",
+        "nome": "Cliente de Teste",
+        "cnpj": "80.704.135/0001-77",
+        "endereco": "Servidão Professor Nilson José de Jesus, 1, Ingleses do Rio Vermelho, Florianópolis/SC, CEP: 88058-160",
+        "telefone": "(48) 99999-9999",
+        "email": "clienteteste@gmail.com",
+        "advogados": []
+    },
+    {
+        "id": "1659699993467x910173085771759600",
+        "nome": "Teste",
+        "cnpj": "00000000000000000000000000",
+        "endereco": "Servidão Professor Nilson José de Jesus, 1, Ingleses do Rio Vermelho, Florianópolis/SC, CEP: 88058-160",
+        "telefone": "(00) 0000-0000",
+        "email": "teste@teste.com",
+        "advogados": []
+    },
+    {
+        "id": "1669956619731x258450158699413500",
+        "nome": "L M BARBOSA REFRIGERACAO",
+        "cnpj": "28832989000119",
+        "endereco": "RUA PRIMEIRO DE JULHO, 498, VILA CARVALHO, CAMPO GRANDE/MS, CEP: 79005-610",
+        "telefone": "(67) 9229-5207",
+        "email": "refrigeracaolmbarbosa@gmail.com",
+        "advogados": []
+    },
+    {
+        "id": "1705088755127x622850161545576400",
+        "nome": "DESCARTAMED COMERCIO E REPRESENTACAO LTDA",
+        "cnpj": "11.815.774/0001-97",
+        "endereco": "Rua não informada, 1026, Coophavila II, Cidade não informada/MS, CEP: 79097-070",
+        "telefone": "(67) 9272-6207",
+        "email": "vendas.descartamed@gmail.com",
+        "advogados": []
+    },
+    {
+        "id": "1730127631065x152463917070155780",
+        "nome": "LICITATECH PROCESSAMENTO DE DADOS",
+        "cnpj": "53046308000134",
+        "endereco": "RUA SAPOTI, 114, MONTE CASTELO, CAMPO GRANDE/MS, CEP: 79010-111",
+        "telefone": "(67) 9194-0555",
+        "email": "CONTATO@TECHLICITA.COM.BR",
+        "advogados": []
+    },
+    {
+        "id": "1730127631065x152463917070155781",
+        "nome": "SANTA CRUZ",
+        "cnpj": "24.610.826/0001-30",
+        "endereco": "Avenida Marechal Deodoro, 5334, Vila São Jorge da Lagoa, Campo Grande/MS, CEP: 79095-000",
+        "telefone": "(67) 3385-5600",
+        "email": "administrativo@santacruzms.com",
+        "advogados": []
+    },
+    {
+        "id": "1663537078689x772554765135511600",
+        "nome": "RJ TERRAPLANAGEM",
+        "cnpj": "26.262.643/0001-05",
+        "endereco": "Rua Doutor Werneck, Não informado, Vila Albuquerque, Campo Grande/MS, CEP: 79060-300",
+        "telefone": "Não informado",
+        "email": "rjterraplenagem.ms@gmail.com",
+        "advogados": []
+    },
+    {
+        "id": "1663537078689x772554765135511601",
+        "nome": "CRK EMPREENDIMENTOS E ASFALTO USINADO",
+        "cnpj": "32.194.603/0001-68",
+        "endereco": "Rodovia MS 278 KM 02, Entrada BR 163 S/N, 000, ZONA RURAL, Caarapó/MS, CEP: 79940-000",
+        "telefone": "(67) 9965-6299",
+        "email": "crkempreendimentos@outlook.com",
+        "advogados": []
+    },
+    {
+        "id": "1663623605092x482582584902287360",
+        "nome": "OLIPOL ENGENHARIA E COMERCIO LTDA",
+        "cnpj": "62688528000152",
+        "endereco": "Rua Octávio de Freitas Filho, 328, Pólo Industrial Guilherme Müller Filho, Pirassununga/SP, CEP: 13632-622",
+        "telefone": "(11) 3816-2233",
+        "email": "guilherme@olipol.com.br",
+        "advogados": []
+    },
+    {
+        "id": "1666188051483x985686739726893000",
+        "nome": "ConLicitação",
+        "cnpj": "03.635.879/0001-36",
+        "endereco": "Estrada do Jaguaré, 422, Jardim Jussara, São Paulo/SP, CEP: 05525-080",
+        "telefone": "(11) 3783-8666",
+        "email": "marcelo.mello@conlicitacao.com.br",
+        "advogados": []
+    },
+    {
+        "id": "1733411758515x375438921426010100",
+        "nome": "ALFANEO INTELIGENCIA ARTIFICIAL",
+        "cnpj": "36.764.019/0001-51",
+        "endereco": "Rua Pedro Celestino, 3607, Centro, Campo Grande/MS, CEP: 79004-560",
+        "telefone": "(67) 9665-2011",
+        "email": "renato.ishii@alfaneo.ai",
+        "advogados": []
+    }
+]

@@ -35,3 +35,33 @@ model user {
   password String
   petition petition[]
 }
+
+model customer {
+  id                   String   @id @default(uuid())
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  cnpj                 String   @unique
+  razaoSocial          String   @map("razao_social")
+  nomeFantasia         String   @map("nome_fantasia")
+  email                String?  @unique
+  telefone             String?
+  celular              String?
+  nomeResponsavel      String?  @map("nome_responsavel")
+  enderecoRua          String   @map("endereco_rua")
+  enderecoNumero       String?  @map("endereco_numero")
+  enderecoComplemento  String?  @map("endereco_complemento")
+  enderecoBairro       String?  @map("endereco_bairro")
+  enderecoCidade       String?  @map("endereco_cidade")
+  enderecoUF           String?  @map("endereco_uf")
+  enderecoCEP          String?  @map("endereco_cep")
+  inscricaoEstadual    String?  @map("inscricao_estadual")
+  inscricaoMunicipal   String?  @map("inscricao_municipal")
+  percentualComissao   Float    @map("percentual_comissao")
+  ativo                Boolean  @default(true)
+  ehCliente            Boolean  @map("eh_cliente")
+  ehFornecedor         Boolean  @map("eh_fornecedor")
+  palavrasChave        String?  @map("palavras_chave")
+  slug                 String?   @unique
+  senhaAprovacao       String?  @map("senha_aprovacao")
+  numeroWhatsapp       String?  @map("numero_whatsapp")
+}

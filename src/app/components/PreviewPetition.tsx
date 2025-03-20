@@ -9,6 +9,12 @@ interface PreviewPetitionProps {
   description: string;
   argumentsText: string;
   request: string;
+  autoridade?: string;
+  contraparte?: string;
+  cidade?: string;
+  dataDocumento?: string;
+  nomeAdvogado?: string;
+  numeroOAB?: string;
   content: string;
   onDownload: () => void;
   isLoading: boolean;
@@ -21,6 +27,12 @@ export default function PreviewPetition({
   description, 
   argumentsText, 
   request,
+  autoridade,
+  contraparte,
+  cidade,
+  dataDocumento,
+  nomeAdvogado,
+  numeroOAB,
   content,
   onDownload,
   isLoading
@@ -50,12 +62,18 @@ export default function PreviewPetition({
           </div>
         ) : (
           <div>
+            <p><strong>Autoridade Destinatária:</strong> {autoridade}</p>
+            <p><strong>Contraparte:</strong> {contraparte}</p>
             <p><strong>Número do Processo:</strong> {processNumber}</p>
             <p><strong>Órgão/Entidade:</strong> {entity}</p>
             <p><strong>Motivo:</strong> {reason}</p>
             <p><strong>Descrição dos Fatos:</strong> {description}</p>
             <p><strong>Argumentos Jurídicos:</strong> {argumentsText}</p>
             <p><strong>Pedido:</strong> {request}</p>
+            <p><strong>Cidade:</strong> {cidade}</p>
+            <p><strong>Data:</strong> {dataDocumento}</p>
+            <p><strong>Advogado:</strong> {nomeAdvogado}</p>
+            <p><strong>OAB:</strong> {numeroOAB}</p>
           </div>
         )}
       </div>

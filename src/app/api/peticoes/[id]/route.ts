@@ -22,7 +22,7 @@ async function getUserId(): Promise<number> {
 // Rota PUT para atualizar uma petição existente
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -37,7 +37,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
     
-    const peticaoId = parseInt(params.id);
+    const { id } = await params;
+    const peticaoId = parseInt(id);
     
     // Verificar se a petição existe e pertence ao usuário
     const peticaoExistente = await prisma.petition.findFirst({
@@ -89,7 +90,7 @@ export async function PUT(
 // Rota DELETE para excluir uma petição
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -104,7 +105,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
     
-    const peticaoId = parseInt(params.id);
+    const { id } = await params;
+    const peticaoId = parseInt(id);
     
     // Verificar se a petição existe e pertence ao usuário
     const peticaoExistente = await prisma.petition.findFirst({
@@ -142,7 +144,7 @@ export async function DELETE(
 // Rota GET para obter uma petição específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -157,7 +159,8 @@ export async function GET(
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
     
-    const peticaoId = parseInt(params.id);
+    const { id } = await params;
+    const peticaoId = parseInt(id);
     
     // Buscar a petição no banco de dados
     const peticao = await prisma.petition.findFirst({

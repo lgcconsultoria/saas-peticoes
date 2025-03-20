@@ -1,0 +1,39 @@
+{
+    "termos_proibidos": [
+        "palavrão",
+        "ofensivo",
+        "inadequado"
+    ],
+    "termos_obrigatorios": {
+        "recurso_administrativo": [
+            "prazo",
+            "recurso",
+            "reconsideração"
+        ],
+        "impugnacao_edital": [
+            "edital",
+            "impugnação",
+            "ilegalidade"
+        ],
+        "mandado_seguranca": [
+            "direito líquido e certo",
+            "autoridade coatora",
+            "ato ilegal"
+        ],
+        "contrarrazoes_recurso": [
+            "recurso",
+            "contrarrazões",
+            "manutenção da decisão"
+        ]
+    },
+    "padroes_citacao": [
+        "(?i)art(?:igo)?\\.?\\s*\\d+",
+        "(?i)lei\\s*(?:n[°º]?)?\\s*\\d+[\\.\\d]*/\\d{4}",
+        "(?i)súmula\\s*\\d+"
+    ],
+    "comprimento_minimo": {
+        "fatos": 200,
+        "argumentos": 500,
+        "pedidos": 100
+    }
+}

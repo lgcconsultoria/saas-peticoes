@@ -19,7 +19,7 @@ async function getUserId(email: string): Promise<number> {
 export default async function MinhasPeticoes({
   searchParams
 }: {
-  searchParams: { search?: string }
+  searchParams: Promise<{ search?: string }>
 }) {
   const session = await getServerSession();
 
@@ -35,15 +35,15 @@ export default async function MinhasPeticoes({
   }
 
   // Obter o termo de busca da URL
-  const searchTerm = searchParams.search || '';
+  const { search = '' } = await searchParams;
 
   // Buscar as petições do usuário
   const peticoes = await prisma.petition.findMany({
     where: {
       userId: userId,
-      ...(searchTerm ? {
+      ...(search ? {
         processNumber: {
-          contains: searchTerm,
+          contains: search,
           mode: 'insensitive'
         }
       } : {})

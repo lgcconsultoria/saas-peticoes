@@ -16,7 +16,14 @@ async function getUserId(email: string): Promise<number> {
   return user?.id || 0;
 }
 
-export default async function EditarPeticao({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default async function EditarPeticao(props: PageProps) {
+  const { id } = await props.params;
   const session = await getServerSession();
 
   if (!session) {
@@ -33,7 +40,7 @@ export default async function EditarPeticao({ params }: { params: { id: string }
   // Buscar a petição pelo ID
   const peticao = await prisma.petition.findFirst({
     where: {
-      id: parseInt(params.id),
+      id: parseInt(id),
       userId: userId
     }
   });

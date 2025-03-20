@@ -1,0 +1,30 @@
+[
+    {
+        "id": "recurso_administrativo",
+        "nome": "Recurso Administrativo",
+        "descricao": "Recurso contra decisão administrativa",
+        "base_legal": "Art. 56 da Lei nº 9.784/99",
+        "prazo": "10 dias"
+    },
+    {
+        "id": "impugnacao_edital",
+        "nome": "Impugnação ao Edital",
+        "descricao": "Impugnação a edital de licitação",
+        "base_legal": "Art. 41 da Lei nº 8.666/93",
+        "prazo": "Até 2 dias úteis antes da abertura"
+    },
+    {
+        "id": "mandado_seguranca",
+        "nome": "Mandado de Segurança",
+        "descricao": "Mandado de segurança contra ato ilegal",
+        "base_legal": "Lei nº 12.016/2009",
+        "prazo": "120 dias"
+    },
+    {
+        "id": "contrarrazoes_recurso",
+        "nome": "Contrarrazões de Recurso",
+        "descricao": "Contrarrazões a recurso administrativo",
+        "base_legal": "Art. 109 da Lei nº 8.666/93",
+        "prazo": "5 dias úteis"
+    }
+]
