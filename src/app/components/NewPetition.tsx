@@ -11,10 +11,32 @@ const TIPOS_PETICAO = {
   defesa: "Defesa de Sanções"
 };
 
+// Mapeamento dos tipos de petição para os papéis do cliente e contraparte
+const PAPEIS_PETICAO = {
+  recurso: {
+    cliente: "Recorrente",
+    contraparte: "Recorrido"
+  },
+  reajuste: {
+    cliente: "Requerente",
+    contraparte: "Requerido"
+  },
+  contrarrazoes: {
+    cliente: "Contrarrazoante",
+    contraparte: "Recorrente"
+  },
+  defesa: {
+    cliente: "Defendente",
+    contraparte: "Acusador"
+  }
+};
+
 export default function NewPetition() {
   const [tipoPeticao, setTipoPeticao] = useState("recurso");
   const [customerId, setCustomerId] = useState("");
   const [processNumber, setProcessNumber] = useState("");
+  const [modalidade, setModalidade] = useState("");
+  const [objeto, setObjeto] = useState("");
   const [entity, setEntity] = useState("");
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
@@ -60,7 +82,7 @@ export default function NewPetition() {
 
     try {
       // Validar campos obrigatórios
-      if (!tipoPeticao || !customerId || !processNumber || !entity || !reason || !description || !argumentsText || !request || !autoridade || !contraparte || !cidade || !dataDocumento || !nomeAdvogado || !numeroOAB) {
+      if (!tipoPeticao || !customerId || !processNumber || !entity || !reason || !description || !autoridade || !contraparte || !cidade || !dataDocumento || !nomeAdvogado || !numeroOAB) {
         throw new Error("Todos os campos são obrigatórios");
       }
 
@@ -157,6 +179,11 @@ export default function NewPetition() {
     }
   };
 
+  // Função para atualizar o tipo de petição
+  const handleTipoPeticaoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTipoPeticao(e.target.value);
+  };
+
   return (
     <div id="formulario-peticao" className="bg-white rounded-lg shadow-md p-6 mb-8">
       <h3 className="text-xl font-semibold text-gray-800 mb-6">Nova Petição</h3>
@@ -176,7 +203,7 @@ export default function NewPetition() {
             <select 
               id="tipo-peticao" 
               value={tipoPeticao}
-              onChange={(e) => setTipoPeticao(e.target.value)}
+              onChange={handleTipoPeticaoChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="recurso">Recurso Administrativo</option>
@@ -184,6 +211,10 @@ export default function NewPetition() {
               <option value="contrarrazoes">Contrarrazões</option>
               <option value="defesa">Defesa de Sanções</option>
             </select>
+            <div className="mt-2 text-sm text-gray-600">
+              <span>Papel do cliente: <strong>{PAPEIS_PETICAO[tipoPeticao as keyof typeof PAPEIS_PETICAO]?.cliente}</strong></span><br/>
+              <span>Papel da contraparte: <strong>{PAPEIS_PETICAO[tipoPeticao as keyof typeof PAPEIS_PETICAO]?.contraparte}</strong></span>
+            </div>
           </div>
           <div>
             <label htmlFor="cliente" className="block text-sm font-medium text-gray-700 mb-2">
@@ -232,6 +263,33 @@ export default function NewPetition() {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label htmlFor="modalidade" className="block text-sm font-medium text-gray-700 mb-2">
+              Modalidade
+            </label>
+            <input 
+              type="text" 
+              id="modalidade"
+              value={modalidade} 
+              onChange={(e) => setModalidade(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="objeto" className="block text-sm font-medium text-gray-700 mb-2">
+              Objeto
+            </label>
+            <input 
+              type="text"
+              id="objeto"
+              value={objeto}
+              onChange={(e) => setObjeto(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
         <div className="mb-6">
           <label htmlFor="motivo" className="block text-sm font-medium text-gray-700 mb-2">
             Motivo da Petição
@@ -261,7 +319,7 @@ export default function NewPetition() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
             <label htmlFor="autoridade" className="block text-sm font-medium text-gray-700 mb-2">
-              Autoridade Destinatária
+              Autoridade Competente
             </label>
             <input 
               type="text" 

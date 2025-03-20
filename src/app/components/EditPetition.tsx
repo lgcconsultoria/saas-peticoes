@@ -12,6 +12,26 @@ const TIPOS_PETICAO = {
   defesa: "Defesa de Sanções"
 };
 
+// Mapeamento dos tipos de petição para os papéis do cliente e contraparte
+const PAPEIS_PETICAO = {
+  recurso: {
+    cliente: "Recorrente",
+    contraparte: "Recorrido"
+  },
+  reajuste: {
+    cliente: "Requerente",
+    contraparte: "Requerido"
+  },
+  contrarrazoes: {
+    cliente: "Contrarrazoante",
+    contraparte: "Recorrente"
+  },
+  defesa: {
+    cliente: "Defendente",
+    contraparte: "Acusador"
+  }
+};
+
 // Mapeamento inverso para obter a chave a partir do valor
 const TIPOS_PETICAO_INVERSO: Record<string, string> = {
   "Recurso Administrativo": "recurso",
@@ -30,6 +50,14 @@ interface Petition {
   description: string;
   arguments: string;
   request: string;
+  modalidade?: string;
+  objeto?: string;
+  autoridade?: string;
+  contraparte?: string;
+  cidade?: string;
+  dataDocumento?: string;
+  nomeAdvogado?: string;
+  numeroOAB?: string;
   createdAt: Date;
   updatedAt: Date;
   userId: number;
@@ -42,11 +70,19 @@ interface EditPetitionProps {
 export default function EditPetition({ peticao }: EditPetitionProps) {
   const [tipoPeticao, setTipoPeticao] = useState("");
   const [processNumber, setProcessNumber] = useState("");
+  const [modalidade, setModalidade] = useState("");
+  const [objeto, setObjeto] = useState("");
   const [entity, setEntity] = useState("");
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
   const [argumentsText, setArgumentsText] = useState("");
   const [request, setRequest] = useState("");
+  const [autoridade, setAutoridade] = useState("");
+  const [contraparte, setContraparte] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [dataDocumento, setDataDocumento] = useState("");
+  const [nomeAdvogado, setNomeAdvogado] = useState("");
+  const [numeroOAB, setNumeroOAB] = useState("");
   const [loading, setLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [error, setError] = useState("");
@@ -69,8 +105,21 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
       setArgumentsText(peticao.arguments);
       setRequest(peticao.request);
       setPeticaoId(peticao.id);
+      setModalidade(peticao.modalidade || "");
+      setObjeto(peticao.objeto || "");
+      setAutoridade(peticao.autoridade || "");
+      setContraparte(peticao.contraparte || "");
+      setCidade(peticao.cidade || "");
+      setDataDocumento(peticao.dataDocumento || "");
+      setNomeAdvogado(peticao.nomeAdvogado || "");
+      setNumeroOAB(peticao.numeroOAB || "");
     }
   }, [peticao]);
+
+  // Função para atualizar o tipo de petição
+  const handleTipoPeticaoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTipoPeticao(e.target.value);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +129,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
 
     try {
       // Validar campos obrigatórios
-      if (!tipoPeticao || !processNumber || !entity || !reason || !description || !argumentsText || !request) {
+      if (!tipoPeticao || !processNumber || !entity || !reason || !description || !autoridade || !contraparte || !cidade || !dataDocumento || !nomeAdvogado || !numeroOAB) {
         throw new Error("Todos os campos são obrigatórios");
       }
 
@@ -96,11 +145,19 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
         body: JSON.stringify({
           tipoPeticao: tipoCompleto, // Enviando o nome completo
           processNumber,
+          modalidade,
+          objeto,
           entity,
           reason,
           description,
           arguments: argumentsText,
-          request
+          request,
+          autoridade,
+          contraparte,
+          cidade,
+          dataDocumento,
+          nomeAdvogado,
+          numeroOAB
         }),
       });
 
@@ -188,24 +245,27 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
       )}
 
       <form onSubmit={handleSubmit}>
-        <div className="mb-6">
-          <label htmlFor="tipo-peticao" className="block text-sm font-medium text-gray-700 mb-2">
-            Tipo de Petição
-          </label>
-          <select 
-            id="tipo-peticao" 
-            value={tipoPeticao}
-            onChange={(e) => setTipoPeticao(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="recurso">Recurso Administrativo</option>
-            <option value="reajuste">Pedido de Reajustamento</option>
-            <option value="contrarrazoes">Contrarrazões</option>
-            <option value="defesa">Defesa de Sanções</option>
-          </select>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label htmlFor="tipo-peticao" className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo de Petição
+            </label>
+            <select 
+              id="tipo-peticao" 
+              value={tipoPeticao}
+              onChange={handleTipoPeticaoChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="recurso">Recurso Administrativo</option>
+              <option value="reajuste">Pedido de Reajustamento</option>
+              <option value="contrarrazoes">Contrarrazões</option>
+              <option value="defesa">Defesa de Sanções</option>
+            </select>
+            <div className="mt-2 text-sm text-gray-600">
+              <span>Papel do cliente: <strong>{PAPEIS_PETICAO[tipoPeticao as keyof typeof PAPEIS_PETICAO]?.cliente}</strong></span><br/>
+              <span>Papel da contraparte: <strong>{PAPEIS_PETICAO[tipoPeticao as keyof typeof PAPEIS_PETICAO]?.contraparte}</strong></span>
+            </div>
+          </div>
           <div>
             <label htmlFor="processo" className="block text-sm font-medium text-gray-700 mb-2">
               Número do Processo
@@ -218,6 +278,36 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label htmlFor="modalidade" className="block text-sm font-medium text-gray-700 mb-2">
+              Modalidade
+            </label>
+            <input 
+              type="text" 
+              id="modalidade"
+              value={modalidade} 
+              onChange={(e) => setModalidade(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="objeto" className="block text-sm font-medium text-gray-700 mb-2">
+              Objeto
+            </label>
+            <input 
+              type="text"
+              id="objeto"
+              value={objeto}
+              onChange={(e) => setObjeto(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
             <label htmlFor="orgao" className="block text-sm font-medium text-gray-700 mb-2">
               Órgão/Entidade
@@ -230,19 +320,18 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-        </div>
-
-        <div className="mb-6">
-          <label htmlFor="motivo" className="block text-sm font-medium text-gray-700 mb-2">
-            Motivo
-          </label>
-          <input 
-            type="text" 
-            id="motivo"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div>
+            <label htmlFor="motivo" className="block text-sm font-medium text-gray-700 mb-2">
+              Motivo da Petição
+            </label>
+            <input 
+              type="text" 
+              id="motivo"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
         <div className="mb-6">
@@ -256,6 +345,87 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
             onChange={(e) => setDescription(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           ></textarea>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label htmlFor="autoridade" className="block text-sm font-medium text-gray-700 mb-2">
+              Autoridade Competente
+            </label>
+            <input 
+              type="text" 
+              id="autoridade"
+              value={autoridade} 
+              onChange={(e) => setAutoridade(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="contraparte" className="block text-sm font-medium text-gray-700 mb-2">
+              Contraparte
+            </label>
+            <input 
+              type="text" 
+              id="contraparte"
+              value={contraparte}
+              onChange={(e) => setContraparte(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label htmlFor="cidade" className="block text-sm font-medium text-gray-700 mb-2">
+              Cidade
+            </label>
+            <input 
+              type="text" 
+              id="cidade"
+              value={cidade} 
+              onChange={(e) => setCidade(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="dataDocumento" className="block text-sm font-medium text-gray-700 mb-2">
+              Data
+            </label>
+            <input 
+              type="date" 
+              id="dataDocumento"
+              value={dataDocumento}
+              onChange={(e) => setDataDocumento(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label htmlFor="nomeAdvogado" className="block text-sm font-medium text-gray-700 mb-2">
+              Nome do Advogado
+            </label>
+            <input 
+              type="text" 
+              id="nomeAdvogado"
+              value={nomeAdvogado} 
+              onChange={(e) => setNomeAdvogado(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="numeroOAB" className="block text-sm font-medium text-gray-700 mb-2">
+              Número da OAB
+            </label>
+            <input 
+              type="text" 
+              id="numeroOAB"
+              value={numeroOAB}
+              onChange={(e) => setNumeroOAB(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
         <div className="mb-6">
@@ -301,6 +471,28 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
           </button>
         </div>
       </form>
+
+      {peticaoGerada && (
+        <div className="mt-8">
+          <PreviewPetition 
+            processNumber={processNumber}
+            entity={entity}
+            reason={reason}
+            description={description}
+            argumentsText={argumentsText}
+            request={request}
+            autoridade={autoridade}
+            contraparte={contraparte}
+            cidade={cidade}
+            dataDocumento={dataDocumento}
+            nomeAdvogado={nomeAdvogado}
+            numeroOAB={numeroOAB}
+            content={peticaoGerada}
+            onDownload={handleDownload}
+            isLoading={downloadLoading}
+          />
+        </div>
+      )}
     </div>
   );
 } 
