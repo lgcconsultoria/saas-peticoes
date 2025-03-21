@@ -286,16 +286,14 @@ export async function POST(request: NextRequest) {
         userId: userId
       },
       include: {
-        user: true // Incluir dados do usuário para o documento
-      }
+        user: true, // Incluir dados do usuário para o documento
+        customer: true // Incluir dados do cliente
+      } as any
     }) as any; // Type assertion para contornar as limitações do TypeScript
     
     if (!peticao) {
       return NextResponse.json({ error: 'Petição não encontrada' }, { status: 404 });
     }
-    
-    // Carregar dados do cliente se o customerId estiver presente (não implementado)
-    // const cliente = await prisma.customer.findUnique({ where: { id: peticao.customerId } });
     
     // Criar cabeçalho da petição com os dados do processo
     const headerParagraphs: docx.Paragraph[] = [];
@@ -340,6 +338,39 @@ export async function POST(request: NextRequest) {
       })
     );
     
+    // Qualificação do cliente
+    if (peticao.customer) {
+      const endereco = `${peticao.customer.enderecoRua}, ${peticao.customer.enderecoNumero || 'S/N'}${peticao.customer.enderecoComplemento ? ', ' + peticao.customer.enderecoComplemento : ''}, ${peticao.customer.enderecoBairro || ''}, ${peticao.customer.enderecoCidade || ''} - ${peticao.customer.enderecoUF || ''}, CEP: ${peticao.customer.enderecoCEP || ''}`;
+      
+      headerParagraphs.push(
+        new docx.Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          indent: { firstLine: 720 },
+          spacing: { after: 240 },
+          children: [
+            new docx.TextRun({
+              text: `${peticao.customer.razaoSocial}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${peticao.customer.cnpj}, com sede em ${endereco}${peticao.customer.nomeResponsavel ? `, neste ato representada por ${peticao.customer.nomeResponsavel}` : ''}`,
+              size: 24, // 12pt
+            }),
+          ],
+        })
+      );
+    } else if (peticao.entity) {
+      headerParagraphs.push(
+        new docx.Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          indent: { firstLine: 720 },
+          spacing: { after: 240 },
+          children: [
+            new docx.TextRun({
+              text: `${peticao.entity}`,
+              size: 24, // 12pt
+            }),
+          ],
+        })
+      );
+    }
+    
     // Tipo de petição e parte introdutória
     let tipoTexto = '';
     switch (peticao.type.toLowerCase()) {
@@ -361,10 +392,12 @@ export async function POST(request: NextRequest) {
     
     // Introdução com qualificação
     let introducao = '';
-    if (peticao.entity) {
-      introducao += `${peticao.entity}, `;
+    if (peticao.customer) {
+      introducao = `${peticao.customer.razaoSocial}, já devidamente qualificada,`;
+    } else if (peticao.entity) {
+      introducao = `${peticao.entity},`;
     }
-    introducao += 'devidamente qualificado nos autos do processo em epígrafe, vem, respeitosamente, à presença de Vossa Excelência, por intermédio de seu advogado que esta subscreve, apresentar';
+    introducao += ' devidamente qualificado nos autos do processo em epígrafe, vem, respeitosamente, à presença de Vossa Excelência, por intermédio de seu advogado que esta subscreve, apresentar';
     
     headerParagraphs.push(
       new docx.Paragraph({

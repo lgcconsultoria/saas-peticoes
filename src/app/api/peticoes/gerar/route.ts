@@ -87,6 +87,32 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
+    // Buscar dados do cliente se um ID foi fornecido
+    let clienteInfo = '';
+    if (customerId) {
+      try {
+        const cliente = await prisma.customer.findUnique({
+          where: { id: customerId }
+        });
+        
+        if (cliente) {
+          // Construir informações do cliente para o prompt
+          clienteInfo = `
+          Informações do cliente:
+          - Razão Social: ${cliente.razaoSocial}
+          - CNPJ: ${cliente.cnpj}
+          - Endereço Completo: ${cliente.enderecoRua}, ${cliente.enderecoNumero || 'S/N'}${cliente.enderecoComplemento ? ', ' + cliente.enderecoComplemento : ''}, ${cliente.enderecoBairro || ''}, ${cliente.enderecoCidade || ''} - ${cliente.enderecoUF || ''}, CEP: ${cliente.enderecoCEP || ''}
+          - Representante Legal: ${cliente.nomeResponsavel || 'Não informado'}
+          - Contato: ${cliente.email || 'Email não informado'}, ${cliente.telefone || 'Telefone não informado'}
+          
+          IMPORTANTE: Use esses dados do cliente na petição, especialmente na qualificação da parte. Refira-se ao cliente pelo nome da empresa (razão social) e inclua seus dados completos nos momentos apropriados do documento.
+          `;
+        }
+      } catch (error) {
+        console.error("Erro ao buscar dados do cliente:", error);
+      }
+    }
+    
     // Criar um contexto adicional para a petição
     let contextoAdicional = '';
     if (processNumber) contextoAdicional += `Número do Processo: ${processNumber}. `;
@@ -108,6 +134,10 @@ export async function POST(request: NextRequest) {
     2. Argumentos jurídicos sólidos e DETALHADOS baseados nos fatos, com citações de leis e jurisprudências relevantes
     3. Pedidos claros e objetivos
     
+    ${clienteInfo ? `
+    IMPORTANTE: Esta petição está sendo feita em nome do cliente cuja qualificação foi informada. Inclua seus dados na petição, especialmente na introdução, mencionando a razão social, CNPJ e demais informações relevantes.
+    ` : ''}
+    
     Formate sua resposta EXATAMENTE neste formato:
     
     # I - DOS FATOS
@@ -124,6 +154,8 @@ export async function POST(request: NextRequest) {
     Lembre-se que estou gerando uma petição do tipo ${tipoPeticao}, então adapte os argumentos e pedidos de acordo com esse tipo específico.
     
     ${contextoAdicional ? `Contexto adicional para considerar: ${contextoAdicional}` : ''}
+    
+    ${clienteInfo ? clienteInfo : ''}
     
     Utilize seu conhecimento jurídico especializado para criar uma petição de alta qualidade.
     `;
@@ -305,7 +337,8 @@ export async function POST(request: NextRequest) {
         cidade,
         dataDocumento,
         nomeAdvogado,
-        numeroOAB
+        numeroOAB,
+        customerId: customerId || undefined
       } as any // Type assertion para contornar limitações do TypeScript
     });
     

@@ -36,6 +36,10 @@ model petition {
   dataDocumento   String?  
   nomeAdvogado    String?  
   numeroOAB       String?  
+  
+  // Relação com o cliente
+  customer        customer? @relation(fields: [customerId], references: [id])
+  customerId      String?
 }
 
 model user {
@@ -74,4 +78,7 @@ model customer {
   slug                 String?   @unique
   senhaAprovacao       String?  @map("senha_aprovacao")
   numeroWhatsapp       String?  @map("numero_whatsapp")
+  
+  // Relação com petições
+  petitions            petition[]
 }
