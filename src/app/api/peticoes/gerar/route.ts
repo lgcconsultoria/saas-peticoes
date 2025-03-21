@@ -3,7 +3,21 @@ import OpenAI from 'openai';
 import { getServerSession } from 'next-auth';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Configurar o timeout da Edge Function (pode ser até 60 segundos em produção)
+export const config = {
+  runtime: 'edge',
+  maxDuration: 60, // 60 segundos para a Vercel
+};
+
+// Conexão singleton com o Prisma para evitar múltiplas conexões
+let prismaClient: PrismaClient;
+
+function getPrismaClient() {
+  if (!prismaClient) {
+    prismaClient = new PrismaClient();
+  }
+  return prismaClient;
+}
 
 // Log environment variables (partially redacted for security)
 console.log("OPENAI_API_KEY disponível:", process.env.OPENAI_API_KEY ? `${process.env.OPENAI_API_KEY.substring(0, 10)}...${process.env.OPENAI_API_KEY.substring(process.env.OPENAI_API_KEY.length - 4)}` : "Não definida");
@@ -24,6 +38,7 @@ async function getUserId(): Promise<number> {
   }
   
   // Buscar o usuário pelo email
+  const prisma = getPrismaClient();
   const user = await prisma.user.findUnique({
     where: { email: session.user.email }
   });
@@ -88,6 +103,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Buscar dados do cliente se um ID foi fornecido
+    const prisma = getPrismaClient();
     let clienteInfo = '';
     if (customerId) {
       try {
@@ -122,180 +138,84 @@ export async function POST(request: NextRequest) {
     if (autoridade) contextoAdicional += `Autoridade: ${autoridade}. `;
     if (contraparte) contextoAdicional += `Contraparte: ${contraparte}. `;
     
-    // Criar o prompt aprimorado para a OpenAI
+    // Criar o prompt aprimorado para a OpenAI (reduzido para otimização)
     const prompt = `
     Por favor, gere uma petição completa do tipo ${tipoPeticao} com o seguinte motivo: "${reason}". 
     Os fatos básicos são: "${description}".
     
-    É EXTREMAMENTE IMPORTANTE que você ELABORE E EXPANDA os fatos fornecidos, criando uma narrativa jurídica completa e detalhada. NÃO apenas repita os fatos básicos, mas desenvolva-os de forma profissional e juridicamente adequada.
+    É EXTREMAMENTE IMPORTANTE que você ELABORE E EXPANDA os fatos fornecidos, criando uma narrativa jurídica completa.
     
     Preciso que você gere:
-    1. Uma versão COMPLETA, DETALHADA e juridicamente adequada dos fatos apresentados, expandindo-os significativamente
-    2. Argumentos jurídicos sólidos e DETALHADOS baseados nos fatos, com citações de leis e jurisprudências relevantes
+    1. Uma versão COMPLETA dos fatos apresentados, expandindo-os significativamente
+    2. Argumentos jurídicos baseados nos fatos, com citações de leis relevantes
     3. Pedidos claros e objetivos
     
-    ${clienteInfo ? `
-    IMPORTANTE: Esta petição está sendo feita em nome do cliente cuja qualificação foi informada. Inclua seus dados na petição, especialmente na introdução, mencionando a razão social, CNPJ e demais informações relevantes.
-    ` : ''}
+    ${clienteInfo ? `IMPORTANTE: Esta petição está sendo feita em nome do cliente cuja qualificação foi informada. Inclua seus dados.` : ''}
     
     Formate sua resposta EXATAMENTE neste formato:
     
     # I - DOS FATOS
-    [Sua versão completa e expandida dos fatos aqui - seja detalhado e abrangente]
+    [Sua versão completa e expandida dos fatos aqui]
     
     # II - DOS FUNDAMENTOS JURÍDICOS
-    [Seus argumentos jurídicos detalhados aqui - inclua citações de leis, doutrinas e jurisprudências]
+    [Seus argumentos jurídicos aqui]
     
     # III - DOS PEDIDOS
-    [Seus pedidos aqui - seja específico e abrangente]
+    [Seus pedidos aqui]
     
-    É EXTREMAMENTE IMPORTANTE que você seja MUITO detalhado e específico nos fatos, argumentos e pedidos, baseando-se nos fatos apresentados, mas expandindo-os significativamente.
-    
-    Lembre-se que estou gerando uma petição do tipo ${tipoPeticao}, então adapte os argumentos e pedidos de acordo com esse tipo específico.
-    
-    ${contextoAdicional ? `Contexto adicional para considerar: ${contextoAdicional}` : ''}
-    
-    ${clienteInfo ? clienteInfo : ''}
-    
-    Utilize seu conhecimento jurídico especializado para criar uma petição de alta qualidade.
+    ${contextoAdicional ? `Contexto adicional: ${contextoAdicional}` : ''}
     `;
     
     console.log("Enviando prompt para a OpenAI...");
     
-    // Verificar se o ID do assistente está configurado
-    const assistantId = process.env.ASSISTANT_ID;
-    console.log("Usando ASSISTANT_ID:", assistantId ? `${assistantId.substring(0, 10)}...` : "Não configurado");
-    
     // Inicializar variável para armazenar o conteúdo da petição
     let peticaoContent = "";
     
-    // Se tiver o ID do assistente, usar o método de assistentes
-    if (assistantId) {
-      try {
-        console.log("Tentando usar a API de Assistentes da OpenAI...");
-        
-        // Criar um thread
-        const thread = await openai.beta.threads.create();
-        console.log("Thread criado com ID:", thread.id);
-        
-        // Adicionar uma mensagem ao thread
-        await openai.beta.threads.messages.create(
-          thread.id,
-          {
-            role: "user",
-            content: prompt
-          }
-        );
-        
-        // Executar o assistente
-        console.log("Executando o assistente...");
-        const run = await openai.beta.threads.runs.create(
-          thread.id,
-          {
-            assistant_id: assistantId
-          }
-        );
-        
-        // Aguardar a conclusão (com timeout)
-        let runStatus;
-        let attempts = 0;
-        const maxAttempts = 30; // 60 segundos (30 * 2)
-        
-        do {
-          if (attempts > 0) {
-            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
-          }
-          
-          runStatus = await openai.beta.threads.runs.retrieve(
-            thread.id,
-            run.id
-          );
-          
-          console.log(`Status atual: ${runStatus.status}`);
-          attempts++;
-          
-        } while (runStatus.status !== "completed" && 
-                runStatus.status !== "failed" && 
-                runStatus.status !== "cancelled" && 
-                runStatus.status !== "expired" && 
-                attempts < maxAttempts);
-        
-        // Verificar se o run foi bem-sucedido
-        if (runStatus.status === "completed") {
-          // Obter mensagens
-          const messages = await openai.beta.threads.messages.list(thread.id);
-          
-          // Obter a última mensagem do assistente
-          const assistantMessages = messages.data.filter(msg => msg.role === "assistant");
-          
-          if (assistantMessages.length > 0) {
-            const lastMessage = assistantMessages[0];
-            
-            // Verificar o tipo de conteúdo e extrair o texto
-            if (lastMessage.content[0].type === 'text') {
-              const contentValue = lastMessage.content[0].text.value;
-              
-              peticaoContent = contentValue;
-              console.log("Petição gerada com sucesso usando o Assistente. Tamanho:", peticaoContent.length);
-            } else {
-              console.log("O formato da resposta do assistente não é texto. Usando método alternativo...");
-            }
-          } else {
-            console.log("Nenhuma mensagem do assistente encontrada. Usando método alternativo...");
-          }
-        } else {
-          console.log(`Execução do assistente não foi concluída com sucesso. Status: ${runStatus.status}`);
-        }
-      } catch (assistantError) {
-        console.error("Erro ao usar o Assistente:", assistantError);
-        console.log("Usando método alternativo (chat completions)...");
-      }
-    }
-    
-    // Se não conseguiu gerar usando o assistente, usar o método de chat completions
-    if (!peticaoContent || peticaoContent.length < 500) {
-      console.log("Usando método de chat completions...");
+    // Usar diretamente o método de chat completions com um timeout reduzido
+    try {
+      console.log("Usando método de chat completions otimizado...");
       
-      // Chamar a API da OpenAI para gerar o conteúdo da petição
+      // Definir um timeout para a requisição à API da OpenAI
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 segundos
+      
       const completion = await openai.chat.completions.create({
         messages: [
           { 
             role: "system", 
-            content: `Você é um advogado especializado em direito administrativo e licitações, com vasta experiência na redação de petições jurídicas. 
-            Você deve criar peças jurídicas completas, bem fundamentadas, com citações precisas de leis, jurisprudências e doutrinas.
-            Nos argumentos jurídicos, SEMPRE cite artigos específicos de leis, decisões de tribunais, e posicionamentos doutrinários que sejam pertinentes.
-            Nos pedidos, seja específico, claro e abrangente, considerando todas as possibilidades jurídicas cabíveis.` 
+            content: `Você é um advogado especializado em petições jurídicas. Seja conciso e direto.` 
           },
           { role: "user", content: prompt }
         ],
-        model: "gpt-4",
+        model: "gpt-3.5-turbo", // Usar modelo mais rápido
         temperature: 0.7,
-        max_tokens: 4000,
-      });
+        max_tokens: 2500, // Reduzir tamanho máximo
+      }, { signal: controller.signal });
+      
+      clearTimeout(timeoutId);
       
       peticaoContent = completion.choices[0].message.content || '';
-      console.log("Petição gerada com método de chat completions. Tamanho:", peticaoContent.length);
+      console.log("Petição gerada com método otimizado. Tamanho:", peticaoContent.length);
+    } catch (error) {
+      console.error("Erro ao gerar usando método otimizado:", error);
       
-      // Verificar se o conteúdo foi gerado corretamente
-      if (!peticaoContent || peticaoContent.length < 500) {
-        console.log("Conteúdo gerado é muito curto, tentando novamente...");
-        
-        // Tentar novamente com um modelo diferente
-        const secondAttempt = await openai.chat.completions.create({
+      // Fallback para uma versão ainda mais simplificada
+      try {
+        const fallbackCompletion = await openai.chat.completions.create({
           messages: [
-            { 
-              role: "system", 
-              content: `Você é um advogado especializado em direito administrativo e licitações, com vasta experiência na redação de petições jurídicas.
-              É EXTREMAMENTE IMPORTANTE que você gere um conteúdo completo, detalhado e bem fundamentado.` 
-            },
-            { role: "user", content: prompt }
+            { role: "system", content: "Gere uma petição jurídica resumida." },
+            { role: "user", content: `Tipo: ${tipoPeticao}. Motivo: ${reason}. Fatos: ${description.substring(0, 500)}` }
           ],
-          model: "gpt-4-turbo",
-          temperature: 0.8,
-          max_tokens: 4000,
+          model: "gpt-3.5-turbo",
+          temperature: 0.5,
+          max_tokens: 1500,
         });
         
-        peticaoContent = secondAttempt.choices[0].message.content || peticaoContent;
+        peticaoContent = fallbackCompletion.choices[0].message.content || '';
+        console.log("Petição gerada com fallback simplificado. Tamanho:", peticaoContent.length);
+      } catch (fallbackError) {
+        console.error("Falha completa ao gerar petição:", fallbackError);
+        return NextResponse.json({ error: 'Timeout ao gerar petição. Tente novamente com um texto mais curto.' }, { status: 408 });
       }
     }
 
@@ -311,11 +231,8 @@ export async function POST(request: NextRequest) {
     const pedidos = pedidosMatch ? pedidosMatch[1].trim() : '';
     
     // Validar se todas as seções foram geradas adequadamente
-    if (fatos.length < 100 || fundamentos.length < 200 || pedidos.length < 50) {
+    if (fatos.length < 50 || fundamentos.length < 100 || pedidos.length < 30) {
       console.log("Seções da petição incompletas, ajustando conteúdo...");
-      
-      // Se alguma seção está faltando ou é muito curta, ainda podemos prosseguir com o que foi gerado,
-      // mas fazemos um log para monitoramento
       console.log(`Tamanho das seções - Fatos: ${fatos.length}, Fundamentos: ${fundamentos.length}, Pedidos: ${pedidos.length}`);
     }
     
