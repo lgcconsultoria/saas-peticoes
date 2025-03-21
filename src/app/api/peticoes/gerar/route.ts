@@ -6,8 +6,8 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Log environment variables (partially redacted for security)
-console.log("OPENAI_API_KEY disponível:", process.env.OPENAI_API_KEY ? `${process.env.OPENAI_API_KEY.substring(0, 5)}...${process.env.OPENAI_API_KEY.substring(process.env.OPENAI_API_KEY.length - 4)}` : "Não definida");
-console.log("ASSISTANT_ID disponível:", process.env.ASSISTANT_ID ? `${process.env.ASSISTANT_ID.substring(0, 5)}...` : "Não definida");
+console.log("OPENAI_API_KEY disponível:", process.env.OPENAI_API_KEY ? `${process.env.OPENAI_API_KEY.substring(0, 10)}...${process.env.OPENAI_API_KEY.substring(process.env.OPENAI_API_KEY.length - 4)}` : "Não definida");
+console.log("ASSISTANT_ID disponível:", process.env.ASSISTANT_ID ? `${process.env.ASSISTANT_ID.substring(0, 10)}...` : "Não definida");
 
 // Inicializar o cliente OpenAI com a chave da API
 const openai = new OpenAI({
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     
     // Verificar se o ID do assistente está configurado
     const assistantId = process.env.ASSISTANT_ID;
-    console.log("Usando ASSISTANT_ID:", assistantId ? `${assistantId.substring(0, 5)}...` : "Não configurado");
+    console.log("Usando ASSISTANT_ID:", assistantId ? `${assistantId.substring(0, 10)}...` : "Não configurado");
     
     // Inicializar variável para armazenar o conteúdo da petição
     let peticaoContent = "";
