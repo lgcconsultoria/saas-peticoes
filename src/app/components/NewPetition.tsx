@@ -99,6 +99,8 @@ export default function NewPetition() {
           tipoPeticao: tipoCompleto, // Enviando o nome completo
           customerId,
           processNumber,
+          modalidade,
+          objeto,
           entity,
           reason,
           description,

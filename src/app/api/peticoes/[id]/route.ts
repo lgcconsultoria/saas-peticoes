@@ -54,7 +54,25 @@ export async function PUT(
     
     // Obter os dados da requisição
     const data = await request.json();
-    const { tipoPeticao, processNumber, entity, reason, description, arguments: argumentsText, request: requestText } = data;
+    
+    // Extrair todos os campos relevantes do corpo da requisição
+    const {
+      tipoPeticao,
+      processNumber,
+      modalidade,
+      objeto,
+      entity,
+      reason,
+      description,
+      arguments: argumentsText,
+      request: requestText,
+      autoridade,
+      contraparte,
+      cidade,
+      dataDocumento,
+      nomeAdvogado,
+      numeroOAB
+    } = data;
     
     // Atualizar a petição no banco de dados
     const peticaoAtualizada = await prisma.petition.update({
@@ -64,12 +82,20 @@ export async function PUT(
       data: {
         type: tipoPeticao,
         processNumber,
+        modalidade,
+        objeto,
         entity,
         reason,
         description,
         arguments: argumentsText,
-        request: requestText
-      }
+        request: requestText,
+        autoridade,
+        contraparte,
+        cidade,
+        dataDocumento,
+        nomeAdvogado,
+        numeroOAB
+      } as any // Type assertion para contornar limitações do TypeScript
     });
     
     return NextResponse.json({

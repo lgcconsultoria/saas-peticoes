@@ -284,15 +284,216 @@ export async function POST(request: NextRequest) {
       where: {
         id: peticaoId,
         userId: userId
+      },
+      include: {
+        user: true // Incluir dados do usuário para o documento
       }
-    });
+    }) as any; // Type assertion para contornar as limitações do TypeScript
     
     if (!peticao) {
       return NextResponse.json({ error: 'Petição não encontrada' }, { status: 404 });
     }
     
-    // Processar o conteúdo e criar parágrafos formatados
-    const paragraphs = processTextToDocumentParagraphs(content);
+    // Carregar dados do cliente se o customerId estiver presente (não implementado)
+    // const cliente = await prisma.customer.findUnique({ where: { id: peticao.customerId } });
+    
+    // Criar cabeçalho da petição com os dados do processo
+    const headerParagraphs: docx.Paragraph[] = [];
+    
+    // Título da petição (EXCELENTÍSSIMO SENHOR...)
+    headerParagraphs.push(
+      new docx.Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 240 },
+        children: [
+          new docx.TextRun({
+            text: `EXCELENTÍSSIMO(A) SENHOR(A) ${peticao.autoridade || 'DOUTOR(A) JUIZ(A) DE DIREITO'}`,
+            bold: true,
+            size: 24, // 12pt
+          }),
+        ],
+      })
+    );
+    
+    // Processo
+    if (peticao.processNumber) {
+      headerParagraphs.push(
+        new docx.Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+          children: [
+            new docx.TextRun({
+              text: `Processo nº ${peticao.processNumber}`,
+              bold: true,
+              size: 24, // 12pt
+            }),
+          ],
+        })
+      );
+    }
+    
+    // Separador
+    headerParagraphs.push(
+      new docx.Paragraph({
+        spacing: { after: 480 }, // Espaço maior
+        children: [],
+      })
+    );
+    
+    // Tipo de petição e parte introdutória
+    let tipoTexto = '';
+    switch (peticao.type.toLowerCase()) {
+      case 'recurso administrativo':
+        tipoTexto = 'RECURSO ADMINISTRATIVO';
+        break;
+      case 'pedido de reajustamento':
+        tipoTexto = 'PEDIDO DE REAJUSTAMENTO';
+        break;
+      case 'contrarrazões':
+        tipoTexto = 'CONTRARRAZÕES AO RECURSO ADMINISTRATIVO';
+        break;
+      case 'defesa de sanções':
+        tipoTexto = 'DEFESA ADMINISTRATIVA';
+        break;
+      default:
+        tipoTexto = peticao.type.toUpperCase();
+    }
+    
+    // Introdução com qualificação
+    let introducao = '';
+    if (peticao.entity) {
+      introducao += `${peticao.entity}, `;
+    }
+    introducao += 'devidamente qualificado nos autos do processo em epígrafe, vem, respeitosamente, à presença de Vossa Excelência, por intermédio de seu advogado que esta subscreve, apresentar';
+    
+    headerParagraphs.push(
+      new docx.Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        indent: { firstLine: 720 },
+        spacing: { after: 240 },
+        children: [
+          new docx.TextRun({
+            text: introducao,
+            size: 24, // 12pt
+          }),
+        ],
+      })
+    );
+    
+    // Tipo de petição em destaque
+    headerParagraphs.push(
+      new docx.Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 240, after: 240 },
+        children: [
+          new docx.TextRun({
+            text: tipoTexto,
+            bold: true,
+            size: 24, // 12pt
+          }),
+        ],
+      })
+    );
+    
+    // Contraparte
+    if (peticao.contraparte) {
+      headerParagraphs.push(
+        new docx.Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          indent: { firstLine: 720 },
+          spacing: { after: 480 },
+          children: [
+            new docx.TextRun({
+              text: `em face de ${peticao.contraparte}, pelas razões de fato e de direito a seguir expostas.`,
+              size: 24, // 12pt
+            }),
+          ],
+        })
+      );
+    } else {
+      headerParagraphs.push(
+        new docx.Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          indent: { firstLine: 720 },
+          spacing: { after: 480 },
+          children: [
+            new docx.TextRun({
+              text: `pelas razões de fato e de direito a seguir expostas.`,
+              size: 24, // 12pt
+            }),
+          ],
+        })
+      );
+    }
+    
+    // Processar o conteúdo principal e criar parágrafos formatados
+    const contentParagraphs = processTextToDocumentParagraphs(content);
+    
+    // Criar rodapé da petição
+    const footerParagraphs: docx.Paragraph[] = [];
+    
+    // Cidade e data
+    if (peticao.cidade || peticao.dataDocumento) {
+      const cidadeData = `${peticao.cidade || 'Local'}, ${formatarData(peticao.dataDocumento) || 'data atual'}.`;
+      footerParagraphs.push(
+        new docx.Paragraph({
+          alignment: AlignmentType.RIGHT,
+          spacing: { before: 480, after: 480 },
+          children: [
+            new docx.TextRun({
+              text: cidadeData,
+              size: 24, // 12pt
+            }),
+          ],
+        })
+      );
+    }
+    
+    // Espaço para assinatura
+    footerParagraphs.push(
+      new docx.Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 480, after: 240 },
+        children: [
+          new docx.TextRun({
+            text: '________________________________________',
+            size: 24, // 12pt
+          }),
+        ],
+      })
+    );
+    
+    // Nome do advogado e OAB
+    if (peticao.nomeAdvogado || peticao.numeroOAB) {
+      footerParagraphs.push(
+        new docx.Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+          children: [
+            new docx.TextRun({
+              text: `${peticao.nomeAdvogado || 'Advogado'}`,
+              bold: true,
+              size: 24, // 12pt
+            }),
+          ],
+        })
+      );
+      
+      if (peticao.numeroOAB) {
+        footerParagraphs.push(
+          new docx.Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 240 },
+            children: [
+              new docx.TextRun({
+                text: `OAB ${peticao.numeroOAB}`,
+                size: 24, // 12pt
+              }),
+            ],
+          })
+        );
+      }
+    }
     
     // Criar o documento DOCX com formatação adequada
     const doc = new docx.Document({
@@ -373,7 +574,7 @@ export async function POST(request: NextRequest) {
               },
             },
           },
-          children: paragraphs,
+          children: [...headerParagraphs, ...contentParagraphs, ...footerParagraphs],
         },
       ],
     });
@@ -386,7 +587,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      fileName: `peticao_${peticaoId}.docx`,
+      fileName: `${formatarNomeArquivo(peticao.type)}_${peticaoId}.docx`,
       contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       content: base64
     });
@@ -394,8 +595,36 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Erro ao gerar documento:', error);
     return NextResponse.json(
-      { error: 'Erro ao gerar documento' },
+      { error: 'Erro ao gerar documento', message: (error as Error).message },
       { status: 500 }
     );
   }
+}
+
+// Função para formatar a data no padrão brasileiro
+function formatarData(data?: string): string {
+  if (!data) return '';
+  
+  try {
+    const [ano, mes, dia] = data.split('-');
+    const meses = [
+      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    
+    return `${dia} de ${meses[parseInt(mes) - 1]} de ${ano}`;
+  } catch (e) {
+    return data;
+  }
+}
+
+// Função para formatar o nome do arquivo
+function formatarNomeArquivo(tipo: string): string {
+  const tipoFormatado = tipo
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  
+  return tipoFormatado;
 } 
