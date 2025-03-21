@@ -3,6 +3,7 @@ import { faUser } from "@fortawesome/free-solid-svg-icons"
 import { getServerSession } from "next-auth";
 import LogoutButton from "./LogoutButton";
 import NavLinks from "./NavLinks";
+import Image from "next/image";
 
 export default async function Sidebar() {
   const session = await getServerSession()
@@ -18,10 +19,20 @@ export default async function Sidebar() {
         </div>
         <div className="p-4 border-t border-blue-700">
           <div className="flex items-center">
-            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600">
-              <div className="h-8 w-8 flex items-center justify-center">
-                <FontAwesomeIcon icon={faUser} width={16} height={16} className="text-white" />
-              </div>
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600 overflow-hidden">
+              {session?.user?.image ? (
+                <Image 
+                  src={session.user.image} 
+                  alt={session.user.name || "User"} 
+                  width={32} 
+                  height={32}
+                  className="object-cover"
+                />
+              ) : (
+                <div className="h-8 w-8 flex items-center justify-center">
+                  <FontAwesomeIcon icon={faUser} width={16} height={16} className="text-white" />
+                </div>
+              )}
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-white">{session?.user?.name}</p>

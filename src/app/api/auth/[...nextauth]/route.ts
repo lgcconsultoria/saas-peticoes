@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import GoogleProvider from "next-auth/providers/google"
 import { prisma } from "@/lib/prisma"
 import { compareSync } from "bcrypt-ts"
 
@@ -11,6 +12,7 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
+      authMethod?: string | null;
     }
   }
   
@@ -18,6 +20,8 @@ declare module "next-auth" {
     id: string;
     name?: string | null;
     email?: string | null;
+    image?: string | null;
+    authMethod?: string | null;
   }
 }
 
@@ -27,6 +31,10 @@ const handler = NextAuth({
     signIn: "/"
   },
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -77,15 +85,54 @@ const handler = NextAuth({
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
       }
+      
+      // If it's a Google login, check if user exists in DB
+      if (account && account.provider === 'google') {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: token.email as string }
+        });
+        
+        if (existingUser) {
+          token.id = existingUser.id.toString();
+        } else {
+          // Create a new user from Google login
+          const newUser = await prisma.user.create({
+            data: {
+              email: token.email as string,
+              name: token.name as string,
+              password: "google-oauth", // Placeholder password for Google users
+              image: token.picture as string, // Save the Google profile image
+              authMethod: "google", // Set authentication method
+            } as any
+          });
+          token.id = newUser.id.toString();
+        }
+      }
+      
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        
+        // If the user logged in with Google, get their info from the database
+        if (token.email) {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email as string }
+          }) as any;
+          
+          if (dbUser && dbUser.image) {
+            session.user.image = dbUser.image;
+          }
+          
+          if (dbUser) {
+            session.user.authMethod = dbUser.authMethod;
+          }
+        }
       }
       return session;
     }

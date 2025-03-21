@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { hashSync } from "bcrypt-ts";
+import { redirect } from "next/navigation";
 
 export default async function registerAction(_prevState: unknown, formData: FormData) {
   const entries = Array.from(formData.entries());
@@ -43,11 +44,16 @@ export default async function registerAction(_prevState: unknown, formData: Form
       name: data.name,
       email: data.email,
       password: hashedPassword,
-    },
+      authMethod: "credentials"
+    } as any,
   });
 
   console.log("Usuário criado com sucesso:", data.email);
   
+  // Redirecionar para a página de login após registro bem-sucedido
+  redirect("/login");
+  
+  // Este retorno nunca será atingido devido ao redirecionamento, mas mantemos para tipagem
   return {
     message: "Usuário criado com sucesso",
     success: true

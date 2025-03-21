@@ -1,7 +1,13 @@
+"use client"
+
 import Link from 'next/link';
 import LoginForm from '../components/LoginForm';
+import { signIn } from 'next-auth/react';
 
 export default function Login() {
+  const handleGoogleSignIn = () => {
+    signIn('google', { callbackUrl: '/dashboard' });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -20,6 +26,7 @@ export default function Login() {
 
         <div className="mt-6">
           <button
+            onClick={handleGoogleSignIn}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer"
           >
             Entrar com Google

@@ -47,6 +47,8 @@ model user {
   name  String
   email String  @unique
   password String
+  image String?
+  authMethod String @default("credentials")
   petition petition[]
 }
 
