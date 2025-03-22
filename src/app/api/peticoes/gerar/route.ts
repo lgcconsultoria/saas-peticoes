@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 // Configurar o timeout da Edge Function (pode ser até 60 segundos em produção)
 export const config = {
   runtime: 'edge',
-  maxDuration: 60, // 60 segundos para a Vercel
+  maxDuration: 120, // 120 segundos para a Vercel
 };
 
 // Conexão singleton com o Prisma para evitar múltiplas conexões

@@ -25,6 +25,25 @@ declare module "next-auth" {
   }
 }
 
+// Interface para os dados de criação do usuário com Google
+interface GoogleUserData {
+  email: string;
+  name: string;
+  password: string;
+  image?: string;
+  authMethod: string;
+}
+
+// Interface para o usuário do Prisma com campos adicionais
+interface PrismaUserWithAuth {
+  id: number;
+  name: string;
+  email: string;
+  password: string;
+  image?: string;
+  authMethod?: string;
+}
+
 const handler = NextAuth({
   debug: true,
   pages: {
@@ -107,7 +126,7 @@ const handler = NextAuth({
               password: "google-oauth", // Placeholder password for Google users
               image: token.picture as string, // Save the Google profile image
               authMethod: "google", // Set authentication method
-            } as any
+            } as GoogleUserData
           });
           token.id = newUser.id.toString();
         }
@@ -123,7 +142,7 @@ const handler = NextAuth({
         if (token.email) {
           const dbUser = await prisma.user.findUnique({
             where: { email: token.email as string }
-          }) as any;
+          }) as PrismaUserWithAuth;
           
           if (dbUser && dbUser.image) {
             session.user.image = dbUser.image;

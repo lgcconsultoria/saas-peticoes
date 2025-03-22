@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDownload, faEdit, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 // Definindo o tipo para as petições
 interface Petition {

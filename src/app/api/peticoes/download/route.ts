@@ -3,8 +3,50 @@ import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import * as docx from 'docx';
 import { AlignmentType } from 'docx';
+import { prisma } from "@/lib/prisma";
+import { saveAs } from "file-saver";
 
-const prisma = new PrismaClient();
+const prismaClient = new PrismaClient();
+
+// Interface para incluir o cliente na consulta
+interface PeticaoInclude {
+  customer: boolean;
+}
+
+// Interface para petição com cliente
+interface PeticaoWithCustomer {
+  id: number;
+  processNumber: string;
+  type: string;
+  entity: string;
+  reason: string;
+  description: string;
+  arguments: string;
+  request: string;
+  modalidade?: string | null;
+  objeto?: string | null;
+  autoridade?: string | null;
+  contraparte?: string | null;
+  cidade?: string | null;
+  dataDocumento?: string | null;
+  nomeAdvogado?: string | null;
+  numeroOAB?: string | null;
+  customer?: {
+    id: string;
+    razaoSocial: string;
+    nomeFantasia: string;
+    cnpj: string;
+    email?: string | null;
+    enderecoRua?: string | null;
+    enderecoNumero?: string | null;
+    enderecoComplemento?: string | null;
+    enderecoBairro?: string | null;
+    enderecoCidade?: string | null;
+    enderecoUF?: string | null;
+    enderecoCEP?: string | null;
+    nomeResponsavel?: string | null;
+  };
+}
 
 // Função auxiliar para obter o ID do usuário da sessão
 async function getUserId(): Promise<number> {
@@ -14,7 +56,7 @@ async function getUserId(): Promise<number> {
   }
   
   // Buscar o usuário pelo email
-  const user = await prisma.user.findUnique({
+  const user = await prismaClient.user.findUnique({
     where: { email: session.user.email }
   });
   
@@ -280,7 +322,7 @@ export async function POST(request: NextRequest) {
     const { peticaoId, content } = data;
     
     // Verificar se a petição existe e pertence ao usuário
-    const peticao = await prisma.petition.findFirst({
+    const peticao = await prismaClient.petition.findFirst({
       where: {
         id: peticaoId,
         userId: userId
@@ -288,8 +330,8 @@ export async function POST(request: NextRequest) {
       include: {
         user: true, // Incluir dados do usuário para o documento
         customer: true // Incluir dados do cliente
-      } as any
-    }) as any; // Type assertion para contornar as limitações do TypeScript
+      } as PeticaoInclude
+    }) as PeticaoWithCustomer; // Type assertion para contornar as limitações do TypeScript
     
     if (!peticao) {
       return NextResponse.json({ error: 'Petição não encontrada' }, { status: 404 });
@@ -467,7 +509,8 @@ export async function POST(request: NextRequest) {
     
     // Cidade e data
     if (peticao.cidade || peticao.dataDocumento) {
-      const cidadeData = `${peticao.cidade || 'Local'}, ${formatarData(peticao.dataDocumento) || 'data atual'}.`;
+      const dataFormatada = peticao.dataDocumento ? formatarData(peticao.dataDocumento) : 'data atual';
+      const cidadeData = `${peticao.cidade || 'Local'}, ${dataFormatada}.`;
       footerParagraphs.push(
         new docx.Paragraph({
           alignment: AlignmentType.RIGHT,
@@ -639,14 +682,17 @@ function formatarData(data?: string): string {
   if (!data) return '';
   
   try {
+    // Formato esperado: YYYY-MM-DD
     const [ano, mes, dia] = data.split('-');
+    
+    // Lista de meses em português
     const meses = [
       'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
     ];
     
     return `${dia} de ${meses[parseInt(mes) - 1]} de ${ano}`;
-  } catch (e) {
+  } catch (_) {
     return data;
   }
 }

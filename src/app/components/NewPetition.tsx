@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react"
 import PreviewPetition from "./PreviewPetition"
+import { Tooltip } from 'react-tooltip'
+import { showError, showSuccess, showInfo } from "@/lib/toast"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faInfoCircle } from "@fortawesome/free-solid-svg-icons"
 
 // Mapeamento dos tipos de petição para seus nomes completos
 const TIPOS_PETICAO = {
@@ -9,6 +13,17 @@ const TIPOS_PETICAO = {
   reajuste: "Pedido de Reajustamento",
   contrarrazoes: "Contrarrazões",
   defesa: "Defesa de Sanções"
+};
+
+// Definição dos tooltips para cada campo
+const TOOLTIPS = {
+  tipoPeticao: "Selecione o tipo de documento jurídico que você precisa criar. Cada tipo tem propósitos específicos.",
+  modalidade: "Informe a modalidade da licitação (ex: Pregão Eletrônico, Concorrência, Tomada de Preços, etc).",
+  objeto: "Descreva brevemente o assunto principal da licitação ou contrato que está sendo tratado.",
+  motivo: "Explique resumidamente o motivo pelo qual você está criando esta petição.",
+  descricao: "Descreva detalhadamente os fatos relevantes para embasar a petição.",
+  autoridade: "Indique a autoridade competente a quem a petição será endereçada (ex: Pregoeiro, Presidente da Comissão, etc).",
+  contraparte: "Informe o nome da parte contrária no processo (órgão público, empresa, etc)."
 };
 
 // Mapeamento dos tipos de petição para os papéis do cliente e contraparte
@@ -97,6 +112,8 @@ export default function NewPetition() {
         console.log("Ambiente de produção detectado. A geração pode levar mais tempo...");
       }
 
+      showInfo("Gerando petição, por favor aguarde...");
+
       // Configurar timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 segundos
@@ -143,6 +160,7 @@ export default function NewPetition() {
         setPeticaoGerada(responseData.content);
         setPeticaoId(responseData.peticaoId);
         setRetryCount(0); // Resetar contagem de tentativas em caso de sucesso
+        showSuccess("Petição gerada com sucesso!");
       } catch (fetchError) {
         clearTimeout(timeoutId);
         
@@ -184,7 +202,7 @@ export default function NewPetition() {
             setPeticaoGerada(simplifiedData.content);
             setPeticaoId(simplifiedData.peticaoId);
             setRetryCount(0);
-          } catch (retryError) {
+          } catch (error) {
             throw new Error(`Não foi possível gerar a petição após ${retryCount + 1} tentativas. Por favor, tente novamente mais tarde ou use uma descrição mais curta.`);
           }
         } else {
@@ -194,6 +212,7 @@ export default function NewPetition() {
     } catch (error) {
       console.error("Erro ao gerar a petição:", error);
       setError((error as Error).message || "Ocorreu um erro ao gerar a petição. Por favor, tente novamente mais tarde.");
+      showError((error as Error).message || "Ocorreu um erro ao gerar a petição");
     } finally {
       setLoading(false);
     }
@@ -204,6 +223,7 @@ export default function NewPetition() {
 
     try {
       setDownloadLoading(true);
+      showInfo("Preparando documento para download...");
       
       // Chamar a API para gerar o documento DOCX
       const response = await fetch('/api/peticoes/download', {
@@ -241,9 +261,12 @@ export default function NewPetition() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      showSuccess("Download concluído com sucesso!");
     } catch (error) {
       console.error("Erro ao baixar o documento:", error);
       setError((error as Error).message);
+      showError("Erro ao baixar o documento: " + (error as Error).message);
     } finally {
       setDownloadLoading(false);
     }
@@ -253,6 +276,22 @@ export default function NewPetition() {
   const handleTipoPeticaoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setTipoPeticao(e.target.value);
   };
+
+  // Função para criar o ícone de ajuda com tooltip
+  const renderTooltip = (fieldId: string, label: string) => (
+    <label htmlFor={fieldId} className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+      {label}
+      <FontAwesomeIcon 
+        icon={faInfoCircle} 
+        className="ml-1 text-gray-500 cursor-help" 
+        data-tooltip-id={`tooltip-${fieldId}`}
+        data-tooltip-content={TOOLTIPS[fieldId as keyof typeof TOOLTIPS]}
+        width={14}
+        height={14}
+      />
+      <Tooltip id={`tooltip-${fieldId}`} />
+    </label>
+  );
 
   return (
     <div id="formulario-peticao" className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -289,11 +328,9 @@ export default function NewPetition() {
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="tipo-peticao" className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Petição
-            </label>
+            {renderTooltip("tipoPeticao", "Tipo de Petição")}
             <select 
-              id="tipo-peticao" 
+              id="tipoPeticao" 
               value={tipoPeticao}
               onChange={handleTipoPeticaoChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -357,9 +394,7 @@ export default function NewPetition() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="modalidade" className="block text-sm font-medium text-gray-700 mb-2">
-              Modalidade
-            </label>
+            {renderTooltip("modalidade", "Modalidade")}
             <input 
               type="text" 
               id="modalidade"
@@ -369,9 +404,7 @@ export default function NewPetition() {
             />
           </div>
           <div>
-            <label htmlFor="objeto" className="block text-sm font-medium text-gray-700 mb-2">
-              Objeto
-            </label>
+            {renderTooltip("objeto", "Objeto")}
             <input 
               type="text"
               id="objeto"
@@ -383,9 +416,7 @@ export default function NewPetition() {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="motivo" className="block text-sm font-medium text-gray-700 mb-2">
-            Motivo da Petição
-          </label>
+          {renderTooltip("motivo", "Motivo da Petição")}
           <input 
             type="text" 
             id="motivo"
@@ -396,11 +427,9 @@ export default function NewPetition() {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="fatos" className="block text-sm font-medium text-gray-700 mb-2">
-            Descrição dos Fatos
-          </label>
+          {renderTooltip("descricao", "Descrição dos Fatos")}
           <textarea 
-            id="fatos" 
+            id="descricao" 
             rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -410,9 +439,7 @@ export default function NewPetition() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="autoridade" className="block text-sm font-medium text-gray-700 mb-2">
-              Autoridade Competente
-            </label>
+            {renderTooltip("autoridade", "Autoridade Competente")}
             <input 
               type="text" 
               id="autoridade"
@@ -422,9 +449,7 @@ export default function NewPetition() {
             />
           </div>
           <div>
-            <label htmlFor="contraparte" className="block text-sm font-medium text-gray-700 mb-2">
-              Contraparte
-            </label>
+            {renderTooltip("contraparte", "Contraparte")}
             <input 
               type="text" 
               id="contraparte"
@@ -509,6 +534,7 @@ export default function NewPetition() {
               setNumeroOAB("");
               setPeticaoGerada("");
               setPeticaoId(null);
+              showInfo("Formulário limpo");
             }}
           >
             Limpar

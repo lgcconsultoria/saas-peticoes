@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react"
 import { useRouter } from 'next/navigation';
 import PreviewPetition from "./PreviewPetition"
+import { Tooltip } from 'react-tooltip'
+import { showError, showSuccess, showInfo } from "@/lib/toast"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faInfoCircle } from "@fortawesome/free-solid-svg-icons"
 
 // Mapeamento dos tipos de petição para seus nomes completos
 const TIPOS_PETICAO = {
@@ -66,6 +70,19 @@ interface Petition {
 interface EditPetitionProps {
   peticao: Petition;
 }
+
+// Definição dos tooltips para cada campo
+const TOOLTIPS = {
+  tipoPeticao: "Selecione o tipo de documento jurídico que você precisa criar. Cada tipo tem propósitos específicos.",
+  modalidade: "Informe a modalidade da licitação (ex: Pregão Eletrônico, Concorrência, Tomada de Preços, etc).",
+  objeto: "Descreva brevemente o assunto principal da licitação ou contrato que está sendo tratado.",
+  motivo: "Explique resumidamente o motivo pelo qual você está criando esta petição.",
+  descricao: "Descreva detalhadamente os fatos relevantes para embasar a petição.",
+  autoridade: "Indique a autoridade competente a quem a petição será endereçada (ex: Pregoeiro, Presidente da Comissão, etc).",
+  contraparte: "Informe o nome da parte contrária no processo (órgão público, empresa, etc).",
+  argumentos: "Descreva os argumentos jurídicos que sustentam seu pedido, citando leis, decretos, jurisprudências, etc.",
+  pedido: "Especifique claramente o que você está pedindo ao órgão competente."
+};
 
 export default function EditPetition({ peticao }: EditPetitionProps) {
   const [tipoPeticao, setTipoPeticao] = useState("");
@@ -136,6 +153,8 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
       // Obter o nome completo do tipo de petição
       const tipoCompleto = TIPOS_PETICAO[tipoPeticao as keyof typeof TIPOS_PETICAO];
 
+      showInfo("Atualizando petição, por favor aguarde...");
+
       // Chamar a API para atualizar a petição
       const response = await fetch(`/api/peticoes/${peticaoId}`, {
         method: 'PUT',
@@ -169,12 +188,15 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
       const data = await response.json();
       setPeticaoGerada(data.content);
       
-      // Redirecionar para a lista de petições após atualização bem-sucedida
-      alert("Petição atualizada com sucesso!");
-      router.push('/minhas-peticoes');
+      // Exibir mensagem de sucesso e redirecionar
+      showSuccess("Petição atualizada com sucesso!");
+      setTimeout(() => {
+        router.push('/minhas-peticoes');
+      }, 1500); // Dar tempo para o usuário ver a mensagem de sucesso
     } catch (error) {
       console.error("Erro ao atualizar a petição:", error);
       setError((error as Error).message);
+      showError((error as Error).message || "Ocorreu um erro ao atualizar a petição");
     } finally {
       setLoading(false);
     }
@@ -185,6 +207,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
 
     try {
       setDownloadLoading(true);
+      showInfo("Preparando documento para download...");
       
       // Chamar a API para gerar o documento DOCX
       const response = await fetch('/api/peticoes/download', {
@@ -222,17 +245,37 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      showSuccess("Download concluído com sucesso!");
     } catch (error) {
       console.error("Erro ao baixar o documento:", error);
       setError((error as Error).message);
+      showError("Erro ao baixar o documento: " + (error as Error).message);
     } finally {
       setDownloadLoading(false);
     }
   };
 
   const handleCancel = () => {
+    showInfo("Edição cancelada");
     router.push('/minhas-peticoes');
   };
+
+  // Função para criar o ícone de ajuda com tooltip
+  const renderTooltip = (fieldId: string, label: string) => (
+    <label htmlFor={fieldId} className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+      {label}
+      <FontAwesomeIcon 
+        icon={faInfoCircle} 
+        className="ml-1 text-gray-500 cursor-help" 
+        data-tooltip-id={`tooltip-${fieldId}`}
+        data-tooltip-content={TOOLTIPS[fieldId as keyof typeof TOOLTIPS]}
+        width={14}
+        height={14}
+      />
+      <Tooltip id={`tooltip-${fieldId}`} />
+    </label>
+  );
 
   return (
     <div id="formulario-peticao" className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -247,9 +290,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="tipo-peticao" className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Petição
-            </label>
+            {renderTooltip("tipoPeticao", "Tipo de Petição")}
             <select 
               id="tipo-peticao" 
               value={tipoPeticao}
@@ -267,9 +308,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
             </div>
           </div>
           <div>
-            <label htmlFor="processo" className="block text-sm font-medium text-gray-700 mb-2">
-              Número do Processo
-            </label>
+            {renderTooltip("processo", "Número do Processo")}
             <input 
               type="text" 
               id="processo"
@@ -282,9 +321,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="modalidade" className="block text-sm font-medium text-gray-700 mb-2">
-              Modalidade
-            </label>
+            {renderTooltip("modalidade", "Modalidade")}
             <input 
               type="text" 
               id="modalidade"
@@ -294,9 +331,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
             />
           </div>
           <div>
-            <label htmlFor="objeto" className="block text-sm font-medium text-gray-700 mb-2">
-              Objeto
-            </label>
+            {renderTooltip("objeto", "Objeto")}
             <input 
               type="text"
               id="objeto"
@@ -309,9 +344,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="orgao" className="block text-sm font-medium text-gray-700 mb-2">
-              Órgão/Entidade
-            </label>
+            {renderTooltip("orgao", "Órgão/Entidade")}
             <input 
               type="text" 
               id="orgao"
@@ -321,9 +354,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
             />
           </div>
           <div>
-            <label htmlFor="motivo" className="block text-sm font-medium text-gray-700 mb-2">
-              Motivo da Petição
-            </label>
+            {renderTooltip("motivo", "Motivo da Petição")}
             <input 
               type="text" 
               id="motivo"
@@ -335,9 +366,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="descricao" className="block text-sm font-medium text-gray-700 mb-2">
-            Descrição dos Fatos
-          </label>
+          {renderTooltip("descricao", "Descrição dos Fatos")}
           <textarea 
             id="descricao"
             rows={4}
@@ -349,9 +378,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="autoridade" className="block text-sm font-medium text-gray-700 mb-2">
-              Autoridade Competente
-            </label>
+            {renderTooltip("autoridade", "Autoridade Competente")}
             <input 
               type="text" 
               id="autoridade"
@@ -361,9 +388,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
             />
           </div>
           <div>
-            <label htmlFor="contraparte" className="block text-sm font-medium text-gray-700 mb-2">
-              Contraparte
-            </label>
+            {renderTooltip("contraparte", "Contraparte")}
             <input 
               type="text" 
               id="contraparte"
@@ -376,9 +401,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="cidade" className="block text-sm font-medium text-gray-700 mb-2">
-              Cidade
-            </label>
+            {renderTooltip("cidade", "Cidade")}
             <input 
               type="text" 
               id="cidade"
@@ -388,9 +411,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
             />
           </div>
           <div>
-            <label htmlFor="dataDocumento" className="block text-sm font-medium text-gray-700 mb-2">
-              Data
-            </label>
+            {renderTooltip("dataDocumento", "Data")}
             <input 
               type="date" 
               id="dataDocumento"
@@ -403,9 +424,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label htmlFor="nomeAdvogado" className="block text-sm font-medium text-gray-700 mb-2">
-              Nome do Advogado
-            </label>
+            {renderTooltip("nomeAdvogado", "Nome do Advogado")}
             <input 
               type="text" 
               id="nomeAdvogado"
@@ -415,9 +434,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
             />
           </div>
           <div>
-            <label htmlFor="numeroOAB" className="block text-sm font-medium text-gray-700 mb-2">
-              Número da OAB
-            </label>
+            {renderTooltip("numeroOAB", "Número da OAB")}
             <input 
               type="text" 
               id="numeroOAB"
@@ -429,9 +446,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="argumentos" className="block text-sm font-medium text-gray-700 mb-2">
-            Argumentos Jurídicos
-          </label>
+          {renderTooltip("argumentos", "Argumentos Jurídicos")}
           <textarea 
             id="argumentos"
             rows={6}
@@ -442,9 +457,7 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
         </div>
 
         <div className="mb-6">
-          <label htmlFor="pedido" className="block text-sm font-medium text-gray-700 mb-2">
-            Pedido
-          </label>
+          {renderTooltip("pedido", "Pedido")}
           <textarea 
             id="pedido"
             rows={4}
