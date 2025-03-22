@@ -46,6 +46,9 @@ const PAPEIS_PETICAO = {
   }
 };
 
+// Constante para o limite máximo de caracteres
+const MAX_DESCRIPTION_LENGTH = 1500;
+
 export default function NewPetition() {
   const [tipoPeticao, setTipoPeticao] = useState("recurso");
   const [customerId, setCustomerId] = useState("");
@@ -71,6 +74,25 @@ export default function NewPetition() {
   const [customers, setCustomers] = useState<{id: string, razaoSocial: string}[]>([]);
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 2;
+  
+  // Função para obter a classe CSS do contador de caracteres
+  const getCharCountClass = () => {
+    const length = description.length;
+    if (length > MAX_DESCRIPTION_LENGTH) return "text-red-600 font-bold";
+    if (length > MAX_DESCRIPTION_LENGTH * 0.8) return "text-orange-500";
+    return "text-gray-500";
+  };
+  
+  // Manipulador de alteração na descrição com validação
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setDescription(newValue);
+    
+    // Aviso ao usuário quando se aproximar do limite
+    if (newValue.length > MAX_DESCRIPTION_LENGTH * 0.9 && description.length <= MAX_DESCRIPTION_LENGTH * 0.9) {
+      showInfo(`Atenção: Você está se aproximando do limite de ${MAX_DESCRIPTION_LENGTH} caracteres.`);
+    }
+  };
 
   useEffect(() => {
     // Função para buscar clientes do banco de dados
@@ -107,6 +129,11 @@ export default function NewPetition() {
       if (tipoPeticao === "contrarrazoes" && !contraparte) {
         throw new Error("O campo Contraparte é obrigatório para Contrarrazões");
       }
+      
+      // Validar tamanho da descrição
+      if (description.length > MAX_DESCRIPTION_LENGTH) {
+        throw new Error(`A descrição excede o limite de ${MAX_DESCRIPTION_LENGTH} caracteres. Atualmente tem ${description.length} caracteres.`);
+      }
 
       // Obter o nome completo do tipo de petição
       const tipoCompleto = TIPOS_PETICAO[tipoPeticao as keyof typeof TIPOS_PETICAO];
@@ -115,13 +142,14 @@ export default function NewPetition() {
       const isProduction = window.location.hostname.includes('vercel.app');
       if (isProduction) {
         console.log("Ambiente de produção detectado. A geração pode levar mais tempo...");
+        showInfo("Ambiente de produção - a geração pode levar até 30 segundos. Por favor aguarde...");
+      } else {
+        showInfo("Gerando petição, por favor aguarde...");
       }
-
-      showInfo("Gerando petição, por favor aguarde...");
 
       // Configurar timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 segundos
+      const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 segundos (um pouco mais que o backend)
 
       try {
         // Chamar a API para gerar a petição
@@ -179,6 +207,9 @@ export default function NewPetition() {
           setRetryCount(prev => prev + 1);
           setError(`Tentativa ${retryCount + 1}/${maxRetries + 1}: O servidor está demorando para responder. Tentando novamente com uma versão simplificada...`);
           
+          // Mostrar mensagem de nova tentativa
+          showInfo(`Tentativa ${retryCount + 1} em andamento. Usando versão simplificada...`);
+          
           // Chamar novamente com menos dados e contexto (para reduzir complexidade)
           try {
             const simplifiedResponse = await fetch('/api/peticoes/gerar', {
@@ -207,6 +238,7 @@ export default function NewPetition() {
             setPeticaoGerada(simplifiedData.content);
             setPeticaoId(simplifiedData.peticaoId);
             setRetryCount(0);
+            showSuccess("Petição gerada com sucesso (versão simplificada)!");
           } catch (error) {
             throw new Error(`Não foi possível gerar a petição após ${retryCount + 1} tentativas. Por favor, tente novamente mais tarde ou use uma descrição mais curta.`);
           }
@@ -314,7 +346,7 @@ export default function NewPetition() {
             <div className="mt-2 text-sm">
               Sugestões:
               <ul className="list-disc pl-5 mt-1">
-                <li>Reduza o tamanho da descrição dos fatos</li>
+                <li>Reduza o tamanho da descrição dos fatos (máximo {MAX_DESCRIPTION_LENGTH} caracteres)</li>
                 <li>Seja mais conciso nos detalhes</li>
                 <li>Tente em um horário com menos tráfego</li>
               </ul>
@@ -330,8 +362,13 @@ export default function NewPetition() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Gerando petição... Este processo pode levar até 60 segundos, por favor aguarde.
+            Gerando petição... Este processo pode levar até 30 segundos, por favor aguarde.
           </div>
+          {retryCount > 0 && (
+            <div className="mt-2">
+              Tentativa {retryCount + 1}/{maxRetries + 1} - usando versão simplificada.
+            </div>
+          )}
         </div>
       )}
 
@@ -437,14 +474,27 @@ export default function NewPetition() {
         </div>
 
         <div className="mb-6">
-          {renderTooltip("descricao", "Descrição dos Fatos")}
+          {renderTooltip("descricao", `Descrição dos Fatos (máx. ${MAX_DESCRIPTION_LENGTH} caracteres)`)}
           <textarea 
             id="descricao" 
             rows={4}
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={handleDescriptionChange}
+            className={`w-full px-4 py-2 border ${description.length > MAX_DESCRIPTION_LENGTH ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
           ></textarea>
+          <div className="flex justify-between mt-1 text-sm">
+            <div className={`${getCharCountClass()}`}>
+              {description.length}/{MAX_DESCRIPTION_LENGTH} caracteres
+              {description.length > MAX_DESCRIPTION_LENGTH && 
+                <span className="ml-1 font-bold text-red-600">
+                  (Excedeu o limite)
+                </span>
+              }
+            </div>
+            <div className="text-gray-500 italic">
+              Recomendação: Seja conciso para evitar timeouts
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
