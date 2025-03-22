@@ -308,7 +308,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       status: 'accepted',
       statusId: statusId,
-      message: 'Petição está sendo processada. Use este ID para verificar o status.'
+      message: 'Petição está sendo processada.'
     });
     
   } catch (error) {
