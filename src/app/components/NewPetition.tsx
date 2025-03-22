@@ -74,6 +74,11 @@ export default function NewPetition() {
   const [customers, setCustomers] = useState<{id: string, razaoSocial: string}[]>([]);
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 2;
+  // Novos estados para o processamento assíncrono
+  const [statusId, setStatusId] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   
   // Função para obter a classe CSS do contador de caracteres
   const getCharCountClass = () => {
@@ -113,11 +118,85 @@ export default function NewPetition() {
     fetchCustomers();
   }, []);
 
+  // Novo useEffect para lidar com o polling de status
+  useEffect(() => {
+    // Limpar o intervalo de polling ao desmontar o componente
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
+  // Função para verificar o status da petição
+  const checkPeticaoStatus = async (id: string) => {
+    try {
+      const response = await fetch('/api/peticoes/gerar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkStatus: true, statusId: id })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao verificar status');
+      }
+
+      const statusData = await response.json();
+
+      // Atualizar interface com o progresso
+      if (statusData.progress) {
+        setProgress(statusData.progress);
+      }
+      
+      if (statusData.message) {
+        setStatusMessage(statusData.message);
+      }
+
+      // Processar o resultado com base no status
+      if (statusData.status === 'completed') {
+        // Petição concluída com sucesso
+        setPeticaoGerada(statusData.content);
+        setPeticaoId(statusData.peticaoId);
+        setLoading(false);
+        setStatusId(null);
+        showSuccess("Petição gerada com sucesso!");
+        
+        // Limpar o intervalo de polling
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+      } 
+      else if (statusData.status === 'error') {
+        // Ocorreu um erro na geração
+        throw new Error(statusData.error || 'Ocorreu um erro na geração da petição');
+      }
+      // Em caso de 'processing', continua o polling
+      
+    } catch (error) {
+      console.error("Erro ao verificar status:", error);
+      setError((error as Error).message);
+      setLoading(false);
+      setStatusId(null);
+      
+      // Limpar o intervalo de polling em caso de erro
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+      
+      showError((error as Error).message);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setLoading(true);
     setError("");
+    setProgress(0);
+    setStatusMessage("Iniciando...");
 
     try {
       // Validar campos obrigatórios comuns a todos os tipos
@@ -138,120 +217,59 @@ export default function NewPetition() {
       // Obter o nome completo do tipo de petição
       const tipoCompleto = TIPOS_PETICAO[tipoPeticao as keyof typeof TIPOS_PETICAO];
 
-      // Mostrar mensagem quando estiver em produção (domínio vercel.app)
-      const isProduction = window.location.hostname.includes('vercel.app');
-      if (isProduction) {
-        console.log("Ambiente de produção detectado. A geração pode levar mais tempo...");
-        showInfo("Ambiente de produção - a geração pode levar até 30 segundos. Por favor aguarde...");
-      } else {
-        showInfo("Gerando petição, por favor aguarde...");
+      // Mostrar mensagem informativa sobre processamento assíncrono
+      showInfo("Sua petição será processada de forma assíncrona. Acompanhe o progresso na tela.");
+
+      // Chamar API para iniciar o processamento assíncrono
+      const response = await fetch('/api/peticoes/gerar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipoPeticao: tipoCompleto,
+          customerId,
+          processNumber,
+          modalidade,
+          objeto,
+          entity,
+          reason,
+          description,
+          arguments: argumentsText,
+          request,
+          autoridade,
+          contraparte,
+          cidade,
+          dataDocumento,
+          nomeAdvogado,
+          numeroOAB
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao iniciar geração de petição');
       }
 
-      // Configurar timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 segundos (um pouco mais que o backend)
-
-      try {
-        // Chamar a API para gerar a petição
-        const response = await fetch('/api/peticoes/gerar', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tipoPeticao: tipoCompleto, // Enviando o nome completo
-            customerId,
-            processNumber,
-            modalidade,
-            objeto,
-            entity,
-            reason,
-            description,
-            arguments: argumentsText,
-            request,
-            autoridade,
-            contraparte,
-            cidade,
-            dataDocumento,
-            nomeAdvogado,
-            numeroOAB
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          if (response.status === 504 || response.status === 408) {
-            throw new Error("Tempo de espera excedido ao gerar a petição. O servidor está processando muitas requisições.");
-          }
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Erro ao gerar petição');
-        }
-
-        const responseData = await response.json();
-        setPeticaoGerada(responseData.content);
-        setPeticaoId(responseData.peticaoId);
-        setRetryCount(0); // Resetar contagem de tentativas em caso de sucesso
-        showSuccess("Petição gerada com sucesso!");
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
+      const responseData = await response.json();
+      
+      // Verificar se recebemos um ID de status para processar de forma assíncrona
+      if (responseData.status === 'accepted' && responseData.statusId) {
+        setStatusId(responseData.statusId);
+        setStatusMessage(responseData.message || "Petição em processamento...");
         
-        // Se for erro de timeout ou aborto e ainda temos tentativas disponíveis
-        if ((fetchError instanceof Error && 
-            (fetchError.name === 'AbortError' || 
-             fetchError.message.includes('timeout') || 
-             fetchError.message.includes('excedido'))) && 
-            retryCount < maxRetries) {
-          
-          setRetryCount(prev => prev + 1);
-          setError(`Tentativa ${retryCount + 1}/${maxRetries + 1}: O servidor está demorando para responder. Tentando novamente com uma versão simplificada...`);
-          
-          // Mostrar mensagem de nova tentativa
-          showInfo(`Tentativa ${retryCount + 1} em andamento. Usando versão simplificada...`);
-          
-          // Chamar novamente com menos dados e contexto (para reduzir complexidade)
-          try {
-            const simplifiedResponse = await fetch('/api/peticoes/gerar', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                tipoPeticao: tipoCompleto,
-                customerId,
-                processNumber,
-                entity,
-                reason,
-                // Reduzir o tamanho da descrição para acelerar processamento
-                description: description.substring(0, Math.min(500, description.length)),
-                autoridade,
-                contraparte
-              }),
-            });
-
-            if (!simplifiedResponse.ok) {
-              throw new Error("Falha na tentativa simplificada");
-            }
-
-            const simplifiedData = await simplifiedResponse.json();
-            setPeticaoGerada(simplifiedData.content);
-            setPeticaoId(simplifiedData.peticaoId);
-            setRetryCount(0);
-            showSuccess("Petição gerada com sucesso (versão simplificada)!");
-          } catch (error) {
-            throw new Error(`Não foi possível gerar a petição após ${retryCount + 1} tentativas. Por favor, tente novamente mais tarde ou use uma descrição mais curta.`);
-          }
-        } else {
-          throw fetchError;
-        }
+        // Iniciar polling para verificar o status a cada 3 segundos
+        const interval = setInterval(() => {
+          checkPeticaoStatus(responseData.statusId);
+        }, 3000);
+        
+        setPollingInterval(interval);
+      } else {
+        throw new Error('Resposta inválida do servidor');
       }
     } catch (error) {
       console.error("Erro ao gerar a petição:", error);
       setError((error as Error).message || "Ocorreu um erro ao gerar a petição. Por favor, tente novamente mais tarde.");
-      showError((error as Error).message || "Ocorreu um erro ao gerar a petição");
-    } finally {
       setLoading(false);
+      showError((error as Error).message || "Ocorreu um erro ao gerar a petição");
     }
   };
 
@@ -357,18 +375,22 @@ export default function NewPetition() {
 
       {loading && (
         <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
-          <div className="flex items-center">
+          <div className="flex items-center mb-2">
             <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Gerando petição... Este processo pode levar até 30 segundos, por favor aguarde.
+            {statusMessage || "Processando petição..."}
           </div>
-          {retryCount > 0 && (
-            <div className="mt-2">
-              Tentativa {retryCount + 1}/{maxRetries + 1} - usando versão simplificada.
-            </div>
-          )}
+          
+          {/* Barra de progresso */}
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div 
+              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+          <div className="text-xs mt-1 text-right">{progress}% concluído</div>
         </div>
       )}
 
