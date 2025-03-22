@@ -131,6 +131,15 @@ export default function NewPetition() {
   // Função para verificar o status da petição
   const checkPeticaoStatus = async (id: string) => {
     try {
+      // Se não tivermos um ID de status válido, interromper o polling
+      if (!id || !statusId) {
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        return;
+      }
+
       const response = await fetch('/api/peticoes/gerar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -139,6 +148,21 @@ export default function NewPetition() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Se o erro for de ID inválido/expirado, apenas pare o polling sem mostrar erro
+        if (response.status === 404 && errorData.error?.includes('ID de status inválido ou expirado')) {
+          console.log('Status expirado, parando polling');
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+          }
+          // Se já temos o conteúdo da petição, não mostrar erro
+          if (!peticaoGerada) {
+            setError("A sessão de geração expirou. Se a petição não foi gerada, tente novamente.");
+          }
+          return;
+        }
+        
         throw new Error(errorData.error || 'Erro ao verificar status');
       }
 
@@ -170,7 +194,16 @@ export default function NewPetition() {
       } 
       else if (statusData.status === 'error') {
         // Ocorreu um erro na geração
-        throw new Error(statusData.error || 'Ocorreu um erro na geração da petição');
+        setError(statusData.error || 'Ocorreu um erro na geração da petição');
+        showError(statusData.error || 'Ocorreu um erro na geração da petição');
+        setLoading(false);
+        
+        // Limpar o intervalo de polling em caso de erro
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        return;
       }
       // Em caso de 'processing', continua o polling
       
@@ -186,6 +219,7 @@ export default function NewPetition() {
         setPollingInterval(null);
       }
       
+      // Mostrar erro apenas uma vez
       showError((error as Error).message);
     }
   };
@@ -193,10 +227,19 @@ export default function NewPetition() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Se já existe um processo em andamento, cancelar
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+
     setLoading(true);
     setError("");
     setProgress(0);
     setStatusMessage("Iniciando...");
+    // Limpar qualquer petição prévia
+    setPeticaoGerada("");
+    setPeticaoId(null);
 
     try {
       // Validar campos obrigatórios comuns a todos os tipos
@@ -256,10 +299,31 @@ export default function NewPetition() {
         setStatusId(responseData.statusId);
         setStatusMessage(responseData.message || "Petição em processamento...");
         
-        // Iniciar polling para verificar o status a cada 3 segundos
+        // Contador para implementar backoff exponencial (reduz a frequência de polling com o tempo)
+        let pollCount = 0;
+        
+        // Iniciar polling para verificar o status, com intervalo variável
         const interval = setInterval(() => {
+          // Verificar se o statusId ainda é válido
+          if (!statusId) {
+            clearInterval(interval);
+            return;
+          }
+          
+          pollCount++;
+          
+          // Se passaram mais de 2 minutos (40 tentativas a 3s cada), interromper o polling
+          if (pollCount > 40) {
+            clearInterval(interval);
+            setPollingInterval(null);
+            setLoading(false);
+            setError("Tempo limite excedido. Se a petição não foi gerada, tente novamente.");
+            showError("Tempo limite excedido para gerar a petição");
+            return;
+          }
+          
           checkPeticaoStatus(responseData.statusId);
-        }, 3000);
+        }, 3000); // Intervalo inicial de 3 segundos
         
         setPollingInterval(interval);
       } else {

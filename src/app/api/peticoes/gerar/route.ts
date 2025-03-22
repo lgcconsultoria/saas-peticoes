@@ -146,6 +146,24 @@ function getModelConfig(description: string, isProduction: boolean) {
 // Em uma solução real, isso seria um banco de dados ou serviço externo
 const peticoesEmProcessamento = new Map();
 
+// Função para limpar petições antigas a cada 2 minutos
+setInterval(() => {
+  const now = Date.now();
+  let count = 0;
+  
+  peticoesEmProcessamento.forEach((value, key) => {
+    // Expirar entradas após 5 minutos (300000ms) ou se estiverem marcadas como completas
+    if (value.completed || (now - value.startTime > 300000)) {
+      peticoesEmProcessamento.delete(key);
+      count++;
+    }
+  });
+  
+  if (count > 0) {
+    console.log(`Limpeza periódica: ${count} petições expiradas removidas do cache.`);
+  }
+}, 120000); // Executar a cada 2 minutos
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession();
@@ -175,8 +193,19 @@ export async function POST(request: NextRequest) {
       
       const statusData = peticoesEmProcessamento.get(statusId);
       
+      // Verificar se o status expirou (mais de 5 minutos)
+      const now = Date.now();
+      if (now - statusData.startTime > 300000) {
+        peticoesEmProcessamento.delete(statusId);
+        return NextResponse.json({ 
+          error: 'ID de status expirado por tempo limite',
+          status: 'expired' 
+        }, { status: 404 });
+      }
+      
       if (statusData.error) {
-        peticoesEmProcessamento.delete(statusId); // Limpar após erro
+        // Não remover imediatamente para dar tempo ao cliente obter o erro
+        // Será removido pela rotina de limpeza
         return NextResponse.json({ 
           status: 'error', 
           error: statusData.error 
@@ -191,7 +220,8 @@ export async function POST(request: NextRequest) {
           sections: statusData.sections
         };
         
-        peticoesEmProcessamento.delete(statusId); // Limpar após conclusão
+        // Não remover imediatamente para dar tempo ao cliente obter os dados
+        // Será removido pela rotina de limpeza
         return NextResponse.json(result);
       }
       
@@ -250,6 +280,8 @@ export async function POST(request: NextRequest) {
       progress: 0,
       message: 'Iniciando processamento...'
     });
+    
+    console.log(`Nova petição registrada com ID: ${statusId}. Total em processamento: ${peticoesEmProcessamento.size}`);
     
     // Iniciar o processamento assíncrono sem bloqueio
     generatePeticaoAsync(statusId, {
