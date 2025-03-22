@@ -435,82 +435,71 @@ async function generatePeticaoAsync(statusId: string, data: any, isProduction: b
     // Construir o prompt final
     let promptFinal = '';
     
-    // Versão otimizada para produção - reduzir o tamanho do prompt e focar no essencial
-    if (isProduction || descriptionLength > 1000) {
-      updateStatus(statusId, { message: 'Gerando petição otimizada...' });
-      
-      // Truncar a descrição para evitar exceder limites de tokens
-      const descricaoTruncada = description.substring(0, Math.min(800, description.length));
-      
-      // Prompt simplificado e direto
-      promptFinal = `
-      Como advogado especializado, gere uma petição concisa de ${tipoPeticao} com base nos seguintes dados:
-      
-      DADOS ESSENCIAIS:
-      - Assunto: ${reason}
-      - Descrição: ${descricaoTruncada}
-      ${contextoAdicional ? `- Contexto: ${contextoAdicional}` : ''}
-      
-      ESTRUTURA OBRIGATÓRIA:
-      # I - DOS FATOS
-      [Resumo dos fatos relevantes]
-      
-      # II - DOS FUNDAMENTOS JURÍDICOS
-      [Principais argumentos jurídicos]
-      
-      # III - DOS PEDIDOS
-      [Pedidos essenciais]
-      
-      Referências úteis: ${conhecimentosJuridicos.jurisprudencia[0]} e ${conhecimentosJuridicos.legislacao[0]}.
-      `;
-    } else {
-      // Versão completa para desenvolvimento ou textos curtos
-      updateStatus(statusId, { message: 'Gerando petição completa...' });
-      
-      promptFinal = `
-      Você é um advogado especializado em petições administrativas. Gere uma petição completa de ${tipoPeticao} seguindo estas instruções:
-      
-      DADOS DO CASO:
-      - Processo: ${processNumber || 'Não informado'}
-      - Órgão: ${entity || 'Não informado'}
-      - Modalidade: ${modalidade || 'Não informada'}
-      - Objeto: ${objeto || 'Não informado'}
-      - Assunto/Motivo: ${reason}
-      - Descrição dos fatos: ${description}
-      - Autoridade Competente: ${autoridade || 'Ilustríssimo Senhor'}
-      ${contraparte ? `- Contraparte: ${contraparte}` : ''}
-      
-      ${clienteInfo || ''}
-      
-      ESTRUTURA DA PETIÇÃO:
-      # CABEÇALHO
-      [Uma introdução adequada endereçada à autoridade competente]
-      
-      # I - DOS FATOS
-      [Exposição detalhada dos fatos apresentados, com cronologia clara e objetiva]
-      
-      # II - DOS FUNDAMENTOS JURÍDICOS
-      [Argumentação jurídica utilizando as seguintes referências:
-      - Jurisprudência: ${conhecimentosJuridicos.jurisprudencia.join(', ')}
-      - Doutrina: ${conhecimentosJuridicos.doutrina.join(', ')}
-      - Legislação: ${conhecimentosJuridicos.legislacao.join(', ')}]
-      
-      # III - DOS PEDIDOS
-      [Lista numerada de pedidos claros e objetivos, incluindo:
-      1. Recebimento da petição
-      2. Consideração dos argumentos
-      3. Deferimento do pedido principal
-      4. Outros pedidos específicos ao caso]
-      
-      # ENCERRAMENTO
-      [Fórmula de encerramento respeitosa]
-      
-      ${enderecoECidade}
-      
-      ${assinaturaAdvogado}
-      `;
-    }
-    
+    // Usar o novo formato de prompt específico solicitado pelo usuário
+    promptFinal = `Você é um advogado especializado em direito administrativo. Sua tarefa é gerar uma petição jurídica completa com base no tipo, motivo e fatos fornecidos.
+INSTRUÇÕES:
+Analise cuidadosamente o TIPO de petição solicitada, o MOTIVO apresentado e os FATOS descritos.
+OBRIGATORIAMENTE utilize a vector store Gerador_peticao (ID: vs_67ccae2f6a5881918aed7733d5509e61) para extrair conhecimentos jurídicos, legislação, jurisprudência e doutrina pertinentes ao caso. Não Inclua referências claras a estas fontes em sua resposta, para que não apareça no texto as referências.
+Elabore uma petição completa contendo:
+   a) FATOS APRIMORADOS:
+Reescreva os fatos apresentados dando-lhes um contexto jurídico específico para o tipo de petição solicitada
+Organize cronologicamente e destaque os elementos juridicamente relevantes
+Adapte a linguagem para o contexto específico do tipo de petição escolhido pelo usuário
+Os fatos devem ter pelo menos 200 caracteres
+   b) ARGUMENTOS JURÍDICOS:
+Fundamente com base na legislação pertinente, especialmente a Lei nº 14.133/2021 para licitações
+Inclua OBRIGATORIAMENTE referências a jurisprudência relevante (TCU, STJ, STF) extraídas da vector store
+Incorpore citações doutrinárias (como Marçal Justen Filho, Celso Antônio Bandeira de Mello, entre outros)
+Desenvolva argumentação sólida com pelo menos 2 parágrafos bem fundamentados
+Explique claramente por que a situação descrita nos fatos merece atenção jurídica
+Cite artigos específicos da legislação aplicável ao caso
+Os argumentos devem ter pelo menos 500 caracteres
+   c) PEDIDO:
+Estruture pedidos claros, objetivos e específicos
+Inclua todos os requerimentos necessários para atender à pretensão
+Organize em formato de tópicos (a, b, c, etc.)
+Garanta que os pedidos sejam coerentes com os argumentos apresentados e adequados ao tipo de petição
+Os pedidos devem ter pelo menos 100 caracteres
+Formate sua resposta EXATAMENTE neste formato:
+FATOS:
+[Sua versão melhorada dos fatos aqui]
+ARGUMENTOS:
+[Seus argumentos jurídicos aqui, incluindo fundamentação legal e doutrinária extraída da vector store]
+PEDIDO:
+[Seus pedidos aqui, estruturados em tópicos]
+É EXTREMAMENTE IMPORTANTE que você use exatamente os cabeçalhos "FATOS:", "ARGUMENTOS:" e "PEDIDO:" para que o sistema possa extrair corretamente as informações.
+REGRAS ADICIONAIS:
+SEMPRE consulte a vector store Gerador_peticao para obter informações jurídicas precisas
+Não cite a Lei 8.666/93 como fundamento, pois foi revogada
+Ao citar acórdãos do TCU, inclua o número no formato "Acórdão XXXX/AAAA-TCU-Plenário"
+Ao citar legislação, use o formato "Art. X da Lei nº Y/ZZZZ"
+Ao citar jurisprudência, use o formato "Tribunal, Número do Processo, Relator, Data"
+Ao citar doutrina, use o formato "AUTOR, Nome da Obra, Ano"
+Verifique a precisão de todas as citações legais
+Mantenha linguagem formal e técnica apropriada para peças jurídicas
+Adapte o conteúdo ao tipo específico de petição solicitada pelo usuário
+NÃO inclua texto adicional antes dos cabeçalhos ou após o conteúdo do PEDIDO
+NÃO modifique os cabeçalhos solicitados
+
+DADOS DO CASO:
+- Tipo de Petição: ${tipoPeticao}
+- Processo: ${processNumber || 'Não informado'}
+- Órgão: ${entity || 'Não informado'}
+- Modalidade: ${modalidade || 'Não informada'}
+- Objeto: ${objeto || 'Não informado'}
+- Motivo: ${reason}
+- Fatos: ${description}
+- Autoridade Competente: ${autoridade || 'Ilustríssimo Senhor'}
+${contraparte ? `- Contraparte: ${contraparte}` : ''}
+
+${clienteInfo || ''}
+
+CONHECIMENTOS JURÍDICOS DISPONÍVEIS:
+- Jurisprudência: ${conhecimentosJuridicos.jurisprudencia.join(', ')}
+- Doutrina: ${conhecimentosJuridicos.doutrina.join(', ')}
+- Legislação: ${conhecimentosJuridicos.legislacao.join(', ')}
+`;
+
     updateStatus(statusId, { message: 'Enviando para processamento...' });
     console.log("Enviando prompt para a OpenAI...");
     
@@ -595,31 +584,32 @@ c) O provimento do pedido conforme os fundamentos expostos.
     
     updateStatus(statusId, { message: 'Extraindo seções e salvando petição...' });
     
-    // Extrair seções da petição
-    const fatosMatch = peticaoContent.match(/I - DOS FATOS\s*([\s\S]*?)(?=II -|$)/i);
-    const fundamentosMatch = peticaoContent.match(/II - DOS FUNDAMENTOS\s*([\s\S]*?)(?=III -|$)/i);
-    const pedidosMatch = peticaoContent.match(/III - DOS PEDIDOS\s*([\s\S]*?)(?=IV -|$)/i);
+    // Extrair seções da petição usando o novo formato de cabeçalhos
+    const fatosMatch = peticaoContent.match(/FATOS:\s*([\s\S]*?)(?=ARGUMENTOS:|$)/i);
+    const fundamentosMatch = peticaoContent.match(/ARGUMENTOS:\s*([\s\S]*?)(?=PEDIDO:|$)/i);
+    const pedidosMatch = peticaoContent.match(/PEDIDO:\s*([\s\S]*?)(?=$)/i);
     
     // Extrair conteúdo das seções ou usar placeholders
     const fatos = fatosMatch ? fatosMatch[1].trim() : 'Fatos conforme descritos.';
     const fundamentos = fundamentosMatch ? fundamentosMatch[1].trim() : 'Fundamentos jurídicos aplicáveis.';
     const pedidos = pedidosMatch ? pedidosMatch[1].trim() : 'Pedidos conforme normativas aplicáveis.';
     
-    // Adicionar cabeçalho e rodapé padrão se não existirem no conteúdo
-    let conteudoFinal = peticaoContent;
+    // Formatando o conteúdo final com os novos cabeçalhos
+    let conteudoFinal = `AO ${autoridade || 'EXCELENTÍSSIMO(A) SENHOR(A) AUTORIDADE COMPETENTE'}\n\n`;
+    conteudoFinal += `FATOS:\n${fatos}\n\n`;
+    conteudoFinal += `ARGUMENTOS:\n${fundamentos}\n\n`;
+    conteudoFinal += `PEDIDO:\n${pedidos}\n\n`;
     
-    // Verificar se já existe um cabeçalho, caso contrário adicionar
-    if (!conteudoFinal.includes("EXCELENTÍSSIMO") && !conteudoFinal.includes("ILUSTRÍSSIMO")) {
-      // Cabeçalho padrão
-      const cabecalho = `EXCELENTÍSSIMO(A) SENHOR(A) ${autoridade || 'AUTORIDADE COMPETENTE'}\n\n`;
-      conteudoFinal = cabecalho + conteudoFinal;
+    // Adicionar local/data e assinatura
+    if (cidade && dataDocumento) {
+      conteudoFinal += `\n\n${cidade}, ${new Date(dataDocumento).toLocaleDateString('pt-BR')}.\n\n`;
     }
     
-    // Verificar se já existe um rodapé com local e data, caso contrário adicionar
-    if (!conteudoFinal.includes(cidade) && cidade) {
-      // Rodapé padrão com local, data e assinatura
-      const rodape = `\n\n${cidade}, ${new Date(dataDocumento).toLocaleDateString('pt-BR')}.\n\n${nomeAdvogado || 'Advogado'}\nOAB ${numeroOAB || '00000'}`;
-      conteudoFinal += rodape;
+    if (nomeAdvogado) {
+      conteudoFinal += `${nomeAdvogado}\n`;
+      if (numeroOAB) {
+        conteudoFinal += `OAB ${numeroOAB}`;
+      }
     }
     
     // Salvar a petição no banco de dados
