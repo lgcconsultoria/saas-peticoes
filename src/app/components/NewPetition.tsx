@@ -157,10 +157,10 @@ export default function NewPetition() {
             clearInterval(pollingInterval);
             setPollingInterval(null);
           }
-          // Se já temos o conteúdo da petição, não mostrar erro
-          if (!peticaoGerada) {
-            setError("A sessão de geração expirou. Se a petição não foi gerada, tente novamente.");
-          }
+          // Mostrar erro somente se não tivermos a petição gerada
+          // if (!peticaoGerada) {
+          //   setError("A sessão expirou. Por favor, tente novamente.");
+          // }
           return;
         }
         
@@ -171,7 +171,7 @@ export default function NewPetition() {
       console.log("Status recebido:", statusData.status, statusData);
 
       // Processar o resultado com base no status
-      if (statusData.status === 'completed') {
+      if (statusData.status === 'completed' && !peticaoGerada) {
         console.log("Petição concluída com sucesso!", statusData.peticaoId);
         // Petição concluída com sucesso
         setPeticaoGerada(statusData.content);
@@ -180,6 +180,7 @@ export default function NewPetition() {
         setStatusId(null);
         
         // Mostrar toast de sucesso apenas quando a petição for realmente gerada
+        // e apenas se ainda não mostramos (verificando se peticaoGerada estava vazio)
         showSuccess("Petição gerada com sucesso!");
         
         // Limpar o intervalo de polling
@@ -201,6 +202,16 @@ export default function NewPetition() {
           setPollingInterval(null);
         }
         return;
+      }
+      else if (statusData.status === 'completed' && peticaoGerada) {
+        // Se já temos a petição gerada, apenas limpar o polling sem mostrar toast
+        console.log("Petição já foi marcada como completa anteriormente");
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        setLoading(false);
+        setStatusId(null);
       }
       else {
         console.log("Petição ainda em processamento...");
@@ -352,7 +363,6 @@ export default function NewPetition() {
 
     try {
       setDownloadLoading(true);
-      showInfo("Preparando documento para download...");
       
       // Chamar a API para gerar o documento DOCX
       const response = await fetch('/api/peticoes/download', {
