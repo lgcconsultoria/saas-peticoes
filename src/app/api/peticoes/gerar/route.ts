@@ -140,29 +140,57 @@ export async function POST(request: NextRequest) {
     
     // Criar o prompt aprimorado para a OpenAI (reduzido para otimização)
     const prompt = `
-    Por favor, gere uma petição completa do tipo ${tipoPeticao} com o seguinte motivo: "${reason}". 
-    Os fatos básicos são: "${description}".
+    Você é um advogado especializado em direito administrativo. Sua tarefa é gerar uma petição jurídica completa com base no tipo, motivo e fatos fornecidos.
+
+    Analise cuidadosamente o TIPO de petição: ${tipoPeticao}
+    MOTIVO apresentado: "${reason}"
+    FATOS descritos: "${description}"
+
+    ${clienteInfo ? clienteInfo : ''}
     
-    É EXTREMAMENTE IMPORTANTE que você ELABORE E EXPANDA os fatos fornecidos, criando uma narrativa jurídica completa.
-    
-    Preciso que você gere:
-    1. Uma versão COMPLETA dos fatos apresentados, expandindo-os significativamente
-    2. Argumentos jurídicos baseados nos fatos, com citações de leis relevantes
-    3. Pedidos claros e objetivos
-    
-    ${clienteInfo ? `IMPORTANTE: Esta petição está sendo feita em nome do cliente cuja qualificação foi informada. Inclua seus dados.` : ''}
-    
+    Elabore uma petição completa contendo:
+
+    a) FATOS APRIMORADOS:
+    Reescreva os fatos apresentados dando-lhes um contexto jurídico específico para o tipo de petição solicitada
+    Organize cronologicamente e destaque os elementos juridicamente relevantes
+    Adapte a linguagem para o contexto específico do tipo de petição escolhido
+    Os fatos devem ter pelo menos 200 caracteres
+
+    b) ARGUMENTOS JURÍDICOS:
+    Fundamente com base na legislação pertinente, especialmente a Lei nº 14.133/2021 para licitações
+    Inclua referências a jurisprudência relevante (TCU, STJ, STF)
+    Incorpore citações doutrinárias (como Marçal Justen Filho, Celso Antônio Bandeira de Mello, entre outros)
+    Desenvolva argumentação sólida com pelo menos 2 parágrafos bem fundamentados
+    Explique claramente por que a situação descrita nos fatos merece atenção jurídica
+    Cite artigos específicos da legislação aplicável ao caso
+    Os argumentos devem ter pelo menos 500 caracteres
+
+    c) PEDIDO:
+    Estruture pedidos claros, objetivos e específicos
+    Inclua todos os requerimentos necessários para atender à pretensão
+    Organize em formato de tópicos (a, b, c, etc.)
+    Garanta que os pedidos sejam coerentes com os argumentos apresentados e adequados ao tipo de petição
+    Os pedidos devem ter pelo menos 100 caracteres
+
     Formate sua resposta EXATAMENTE neste formato:
-    
     # I - DOS FATOS
-    [Sua versão completa e expandida dos fatos aqui]
-    
+    [Sua versão melhorada dos fatos aqui]
+
     # II - DOS FUNDAMENTOS JURÍDICOS
-    [Seus argumentos jurídicos aqui]
-    
+    [Seus argumentos jurídicos aqui, incluindo fundamentação legal e doutrinária]
+
     # III - DOS PEDIDOS
-    [Seus pedidos aqui]
-    
+    [Seus pedidos aqui, estruturados em tópicos]
+
+    REGRAS ADICIONAIS:
+    - Não cite a Lei 8.666/93 como fundamento, pois foi revogada
+    - Ao citar acórdãos do TCU, inclua o número no formato "Acórdão XXXX/AAAA-TCU-Plenário"
+    - Ao citar legislação, use o formato "Art. X da Lei nº Y/ZZZZ"
+    - Ao citar jurisprudência, use o formato "Tribunal, Número do Processo, Relator, Data"
+    - Ao citar doutrina, use o formato "AUTOR, Nome da Obra, Ano"
+    - Verifique a precisão de todas as citações legais
+    - Mantenha linguagem formal e técnica apropriada para peças jurídicas
+
     ${contextoAdicional ? `Contexto adicional: ${contextoAdicional}` : ''}
     `;
     
@@ -187,7 +215,7 @@ export async function POST(request: NextRequest) {
           },
           { role: "user", content: prompt }
         ],
-        model: "gpt-3.5-turbo", // Usar modelo mais rápido
+        model: "gpt-4", // "gpt-3.5-turbo", // Usar modelo mais rápido
         temperature: 0.7,
         max_tokens: 2500, // Reduzir tamanho máximo
       }, { signal: controller.signal });
