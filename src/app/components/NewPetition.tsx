@@ -76,8 +76,6 @@ export default function NewPetition() {
   const maxRetries = 2;
   // Novos estados para o processamento assíncrono
   const [statusId, setStatusId] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [statusMessage, setStatusMessage] = useState("");
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   
   // Função para obter a classe CSS do contador de caracteres
@@ -132,13 +130,16 @@ export default function NewPetition() {
   const checkPeticaoStatus = async (id: string) => {
     try {
       // Se não tivermos um ID de status válido, interromper o polling
-      if (!id || !statusId) {
+      if (!id) {
+        console.log("Status ID inválido, interrompendo polling");
         if (pollingInterval) {
           clearInterval(pollingInterval);
           setPollingInterval(null);
         }
         return;
       }
+
+      console.log("Verificando status da petição:", id);
 
       const response = await fetch('/api/peticoes/gerar', {
         method: 'POST',
@@ -167,23 +168,18 @@ export default function NewPetition() {
       }
 
       const statusData = await response.json();
-
-      // Atualizar interface com o progresso
-      if (statusData.progress) {
-        setProgress(statusData.progress);
-      }
-      
-      if (statusData.message) {
-        setStatusMessage(statusData.message);
-      }
+      console.log("Status recebido:", statusData.status, statusData);
 
       // Processar o resultado com base no status
       if (statusData.status === 'completed') {
+        console.log("Petição concluída com sucesso!", statusData.peticaoId);
         // Petição concluída com sucesso
         setPeticaoGerada(statusData.content);
         setPeticaoId(statusData.peticaoId);
         setLoading(false);
         setStatusId(null);
+        
+        // Mostrar toast de sucesso apenas quando a petição for realmente gerada
         showSuccess("Petição gerada com sucesso!");
         
         // Limpar o intervalo de polling
@@ -193,6 +189,7 @@ export default function NewPetition() {
         }
       } 
       else if (statusData.status === 'error') {
+        console.log("Erro na geração da petição:", statusData.error);
         // Ocorreu um erro na geração
         setError(statusData.error || 'Ocorreu um erro na geração da petição');
         showError(statusData.error || 'Ocorreu um erro na geração da petição');
@@ -205,7 +202,10 @@ export default function NewPetition() {
         }
         return;
       }
-      // Em caso de 'processing', continua o polling
+      else {
+        console.log("Petição ainda em processamento...");
+      }
+      // Em caso de 'processing', continua o polling sem mostrar toast
       
     } catch (error) {
       console.error("Erro ao verificar status:", error);
@@ -235,8 +235,6 @@ export default function NewPetition() {
 
     setLoading(true);
     setError("");
-    setProgress(0);
-    setStatusMessage("Iniciando...");
     // Limpar qualquer petição prévia
     setPeticaoGerada("");
     setPeticaoId(null);
@@ -260,8 +258,15 @@ export default function NewPetition() {
       // Obter o nome completo do tipo de petição
       const tipoCompleto = TIPOS_PETICAO[tipoPeticao as keyof typeof TIPOS_PETICAO];
 
-      // Mostrar mensagem informativa sobre processamento assíncrono
-      showInfo("Sua petição será processada de forma assíncrona. Acompanhe o progresso na tela.");
+      // Imprimir dados no console para depuração
+      console.log("Enviando dados para geração de petição:", {
+        tipoPeticao: tipoCompleto,
+        customerId,
+        processNumber,
+        entity,
+        reason,
+        description: description.substring(0, 100) + "...", // Truncado para não poluir o console
+      });
 
       // Chamar API para iniciar o processamento assíncrono
       const response = await fetch('/api/peticoes/gerar', {
@@ -296,24 +301,28 @@ export default function NewPetition() {
       
       // Verificar se recebemos um ID de status para processar de forma assíncrona
       if (responseData.status === 'accepted' && responseData.statusId) {
-        setStatusId(responseData.statusId);
-        setStatusMessage(responseData.message || "Petição em processamento...");
+        // Armazenar o ID de status em uma variável local para usar no intervalo
+        const newStatusId = responseData.statusId;
+        // Atualizar o estado
+        setStatusId(newStatusId);
+        
+        console.log("Iniciando polling com status ID:", newStatusId);
         
         // Contador para implementar backoff exponencial (reduz a frequência de polling com o tempo)
         let pollCount = 0;
         
         // Iniciar polling para verificar o status, com intervalo variável
         const interval = setInterval(() => {
-          // Verificar se o statusId ainda é válido
-          if (!statusId) {
+          // Verificar se o statusId ainda é válido - usar a variável local em vez do estado
+          if (!newStatusId) {
             clearInterval(interval);
             return;
           }
           
           pollCount++;
           
-          // Se passaram mais de 2 minutos (40 tentativas a 3s cada), interromper o polling
-          if (pollCount > 40) {
+          // Se passaram mais de 5 minutos (100 tentativas a 3s cada), interromper o polling
+          if (pollCount > 100) {
             clearInterval(interval);
             setPollingInterval(null);
             setLoading(false);
@@ -322,7 +331,8 @@ export default function NewPetition() {
             return;
           }
           
-          checkPeticaoStatus(responseData.statusId);
+          // Usar a variável local (newStatusId) em vez do estado (statusId)
+          checkPeticaoStatus(newStatusId);
         }, 3000); // Intervalo inicial de 3 segundos
         
         setPollingInterval(interval);
@@ -439,22 +449,13 @@ export default function NewPetition() {
 
       {loading && (
         <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
-          <div className="flex items-center mb-2">
+          <div className="flex items-center">
             <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            {statusMessage || "Processando petição..."}
+            Processando petição...
           </div>
-          
-          {/* Barra de progresso */}
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div 
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-          <div className="text-xs mt-1 text-right">{progress}% concluído</div>
         </div>
       )}
 
@@ -576,9 +577,6 @@ export default function NewPetition() {
                   (Excedeu o limite)
                 </span>
               }
-            </div>
-            <div className="text-gray-500 italic">
-              Recomendação: Seja conciso para evitar timeouts
             </div>
           </div>
         </div>

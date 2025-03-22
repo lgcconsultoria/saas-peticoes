@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 // Configurar o timeout da Edge Function (pode ser até 60 segundos em produção)
 export const config = {
   runtime: 'edge',
-  maxDuration: 60, // 60 segundos para a Vercel
+  maxDuration: 300, // Aumentado para 5 minutos (300 segundos) para evitar timeouts
 };
 
 // Conexão singleton com o Prisma para evitar múltiplas conexões
@@ -91,11 +91,19 @@ async function consultarVectorStore(tipo: string, motivo: string, descricao: str
   
   // Retornar o conhecimento jurídico correspondente ao tipo de petição
   // Ou um valor padrão se o tipo não for encontrado
-  return conhecimentosJuridicos[tipo as keyof typeof conhecimentosJuridicos] || {
+  const resultado = conhecimentosJuridicos[tipo as keyof typeof conhecimentosJuridicos] || {
     jurisprudencia: ["Acórdão 1234/2023-TCU-Plenário"],
     doutrina: ["JUSTEN FILHO, Marçal. Comentários à Lei de Licitações e Contratos Administrativos, 2021"],
     legislacao: ["Art. 5º da Lei nº 14.133/2021"]
   };
+  
+  console.log("Conhecimentos jurídicos obtidos:", { 
+    jurisprudencia: resultado.jurisprudencia.length, 
+    doutrina: resultado.doutrina.length, 
+    legislacao: resultado.legislacao.length 
+  });
+  
+  return resultado;
 }
 
 // Log environment variables (partially redacted for security)
@@ -169,12 +177,14 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession();
     
     if (!session) {
+      console.log("Requisição rejeitada: usuário não autenticado");
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
     
     const userId = await getUserId();
     
     if (!userId) {
+      console.log("Requisição rejeitada: ID de usuário não encontrado");
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
     }
     
@@ -183,6 +193,7 @@ export async function POST(request: NextRequest) {
     console.log("Ambiente de produção:", isProduction ? "Sim" : "Não");
     
     const data = await request.json();
+    console.log("Tipo de requisição recebida:", data.checkStatus ? "Verificação de status" : "Nova petição");
     
     // Verificar se é uma consulta de status
     if (data.checkStatus) {
@@ -220,15 +231,16 @@ export async function POST(request: NextRequest) {
           sections: statusData.sections
         };
         
+        console.log(`Retornando petição completada para ${statusId} com ID: ${statusData.peticaoId}`);
+        
         // Não remover imediatamente para dar tempo ao cliente obter os dados
         // Será removido pela rotina de limpeza
         return NextResponse.json(result);
       }
       
-      // Ainda processando
+      // Ainda processando - remover o progresso da resposta para o cliente
       return NextResponse.json({ 
         status: 'processing',
-        progress: statusData.progress || 0,
         message: statusData.message || 'Processando petição...'
       });
     }
@@ -278,10 +290,20 @@ export async function POST(request: NextRequest) {
       completed: false,
       startTime: Date.now(),
       progress: 0,
-      message: 'Iniciando processamento...'
+      message: 'Processando petição...'
     });
     
     console.log(`Nova petição registrada com ID: ${statusId}. Total em processamento: ${peticoesEmProcessamento.size}`);
+    
+    // Adicionar logging dos dados recebidos para debug
+    console.log(`Dados recebidos para petição ${statusId}:`, {
+      tipoPeticao,
+      customerId,
+      processNumber,
+      entity,
+      reason,
+      description: description ? description.substring(0, 50) + "..." : "(vazio)"
+    });
     
     // Iniciar o processamento assíncrono sem bloqueio
     generatePeticaoAsync(statusId, {
@@ -304,11 +326,11 @@ export async function POST(request: NextRequest) {
       numeroOAB
     }, isProduction);
     
-    // Retornar imediatamente com o ID de status
+    // Retornar imediatamente com o ID de status - ajuste da mensagem
     return NextResponse.json({
       status: 'accepted',
       statusId: statusId,
-      message: 'Petição está sendo processada.'
+      message: 'Processando petição...'
     });
     
   } catch (error) {
@@ -343,7 +365,7 @@ async function generatePeticaoAsync(statusId: string, data: any, isProduction: b
       numeroOAB
     } = data;
     
-    updateStatus(statusId, { progress: 10, message: 'Consultando informações do cliente...' });
+    updateStatus(statusId, { message: 'Consultando informações do cliente...' });
     
     // Buscar dados do cliente se um ID foi fornecido
     const prisma = getPrismaClient();
@@ -370,7 +392,7 @@ async function generatePeticaoAsync(statusId: string, data: any, isProduction: b
       }
     }
     
-    updateStatus(statusId, { progress: 20, message: 'Preparando contexto da petição...' });
+    updateStatus(statusId, { message: 'Preparando contexto da petição...' });
     
     // Criar um contexto adicional para a petição (versão simplificada)
     let contextoAdicional = '';
@@ -378,164 +400,167 @@ async function generatePeticaoAsync(statusId: string, data: any, isProduction: b
     if (entity) contextoAdicional += `Órgão: ${entity}. `;
     if (modalidade) contextoAdicional += `Modalidade: ${modalidade}. `;
     if (objeto) contextoAdicional += `Objeto: ${objeto}. `;
-    if (autoridade) contextoAdicional += `Autoridade: ${autoridade}. `;
-    if (contraparte) contextoAdicional += `Contraparte: ${contraparte}. `;
     
-    updateStatus(statusId, { progress: 30, message: 'Consultando conhecimentos jurídicos...' });
+    updateStatus(statusId, { message: 'Consultando conhecimentos jurídicos...' });
     
-    // Consultar a vector store para obter conhecimentos jurídicos relevantes
+    // Buscar conhecimentos jurídicos relevantes (mocked na função consultarVectorStore)
     console.log("Consultando vector store para obter conhecimentos jurídicos...");
     const conhecimentosJuridicos = await consultarVectorStore(tipoPeticao, reason, description);
     
-    console.log("Conhecimentos jurídicos obtidos:", {
-      jurisprudencia: conhecimentosJuridicos.jurisprudencia.length,
-      doutrina: conhecimentosJuridicos.doutrina.length,
-      legislacao: conhecimentosJuridicos.legislacao.length
-    });
+    // Verificar se temos conhecimentos jurídicos
+    if (!conhecimentosJuridicos) {
+      updateStatus(statusId, { 
+        error: 'Não foi possível obter conhecimentos jurídicos para gerar a petição.'
+      });
+      return;
+    }
     
-    // Criar um sistema de referência para o prompt
-    const referenciasJuridicas = `
-    Referências jurídicas extraídas da vector store para incluir na geração da petição (não cite estas fontes diretamente):
+    // Informações adicionais para a petição
+    let enderecoECidade = '';
+    if (cidade) enderecoECidade = `${cidade}, ${new Date(dataDocumento).toLocaleDateString('pt-BR')}.`;
     
-    JURISPRUDÊNCIA:
-    ${conhecimentosJuridicos.jurisprudencia.join('\n')}
+    let assinaturaAdvogado = '';
+    if (nomeAdvogado) assinaturaAdvogado = `${nomeAdvogado}
+    OAB ${numeroOAB}`;
     
-    DOUTRINA:
-    ${conhecimentosJuridicos.doutrina.join('\n')}
+    // Configurar o modelo com base na entrada
+    updateStatus(statusId, { message: 'Configurando modelo de IA...' });
     
-    LEGISLAÇÃO:
-    ${conhecimentosJuridicos.legislacao.join('\n')}
-    `;
-    
-    updateStatus(statusId, { progress: 40, message: 'Configurando modelo de IA...' });
-    
-    // Obter a configuração do modelo com base no tamanho da entrada e ambiente
+    // Selecionar o modelo com base no ambiente e tamanho dos dados
+    const descriptionLength = description ? description.length : 0;
     const modelConfig = getModelConfig(description, isProduction);
-    console.log(`Usando modelo: ${modelConfig.model}, tokens máx: ${modelConfig.maxTokens}, em ambiente ${isProduction ? 'de produção' : 'de desenvolvimento'}`);
     
-    // Reduzir significativamente o tamanho do prompt para ambiente de produção
+    console.log(`Usando modelo: ${modelConfig.model}, tokens máx: ${modelConfig.maxTokens}, em ambiente de ${isProduction ? 'produção' : 'desenvolvimento'}`);
+    
+    // Construir o prompt final
     let promptFinal = '';
     
-    if (isProduction) {
-      updateStatus(statusId, { progress: 50, message: 'Gerando petição com modelo otimizado para produção...' });
+    // Versão otimizada para produção - reduzir o tamanho do prompt e focar no essencial
+    if (isProduction || descriptionLength > 1000) {
+      updateStatus(statusId, { message: 'Gerando petição otimizada...' });
       
-      // Versão ultra-simplificada para produção
+      // Truncar a descrição para evitar exceder limites de tokens
+      const descricaoTruncada = description.substring(0, Math.min(800, description.length));
+      
+      // Prompt simplificado e direto
       promptFinal = `
-      Como advogado especializado, gere uma petição de ${tipoPeticao} completa mas concisa.
+      Como advogado especializado, gere uma petição concisa de ${tipoPeticao} com base nos seguintes dados:
       
-      DADOS:
+      DADOS ESSENCIAIS:
       - Assunto: ${reason}
-      - Descrição: ${description.substring(0, Math.min(500, description.length))}
+      - Descrição: ${descricaoTruncada}
       ${contextoAdicional ? `- Contexto: ${contextoAdicional}` : ''}
       
-      FORMATO OBRIGATÓRIO:
+      ESTRUTURA OBRIGATÓRIA:
       # I - DOS FATOS
-      [Fatos relevantes]
+      [Resumo dos fatos relevantes]
       
       # II - DOS FUNDAMENTOS JURÍDICOS
-      [Argumentos com base na Lei 14.133/2021]
+      [Principais argumentos jurídicos]
       
       # III - DOS PEDIDOS
-      [Lista de pedidos]
+      [Pedidos essenciais]
       
-      Use referências a ${conhecimentosJuridicos.jurisprudencia[0]} e ${conhecimentosJuridicos.legislacao[0]}.
+      Referências úteis: ${conhecimentosJuridicos.jurisprudencia[0]} e ${conhecimentosJuridicos.legislacao[0]}.
       `;
     } else {
-      updateStatus(statusId, { progress: 50, message: 'Gerando petição completa...' });
+      // Versão completa para desenvolvimento ou textos curtos
+      updateStatus(statusId, { message: 'Gerando petição completa...' });
       
-      // Versão completa para desenvolvimento
       promptFinal = `
-      Você é um advogado especializado em direito administrativo. Sua tarefa é gerar uma petição jurídica completa com base no tipo, motivo e fatos fornecidos.
+      Você é um advogado especializado em petições administrativas. Gere uma petição completa de ${tipoPeticao} seguindo estas instruções:
       
-      INSTRUÇÕES:
-      Analise cuidadosamente o TIPO de petição solicitada: ${tipoPeticao}
-      O MOTIVO apresentado: "${reason}"
-      Os FATOS descritos: "${description}"
+      DADOS DO CASO:
+      - Processo: ${processNumber || 'Não informado'}
+      - Órgão: ${entity || 'Não informado'}
+      - Modalidade: ${modalidade || 'Não informada'}
+      - Objeto: ${objeto || 'Não informado'}
+      - Assunto/Motivo: ${reason}
+      - Descrição dos fatos: ${description}
+      - Autoridade Competente: ${autoridade || 'Ilustríssimo Senhor'}
+      ${contraparte ? `- Contraparte: ${contraparte}` : ''}
       
-      ${clienteInfo}
-      ${contextoAdicional ? `Contexto adicional: ${contextoAdicional}` : ''}
+      ${clienteInfo || ''}
       
-      ${referenciasJuridicas}
-      
-      Elabore uma petição completa contendo:
-      
-      a) FATOS APRIMORADOS:
-      Reescreva os fatos apresentados dando-lhes um contexto jurídico específico para o tipo de petição solicitada
-      Organize cronologicamente e destaque os elementos juridicamente relevantes
-      Adapte a linguagem para o contexto específico do tipo de petição escolhido
-      Os fatos devem ter pelo menos 200 caracteres
-      
-      b) ARGUMENTOS JURÍDICOS:
-      Fundamente com base na legislação pertinente, especialmente a Lei nº 14.133/2021 para licitações
-      Inclua referências a jurisprudência relevante (TCU, STJ, STF)
-      Incorpore citações doutrinárias (como Marçal Justen Filho, Celso Antônio Bandeira de Mello)
-      Desenvolva argumentação sólida com pelo menos 2 parágrafos bem fundamentados
-      Explique claramente por que a situação descrita nos fatos merece atenção jurídica
-      Cite artigos específicos da legislação aplicável ao caso
-      Os argumentos devem ter pelo menos 500 caracteres
-      
-      c) PEDIDO:
-      Estruture pedidos claros, objetivos e específicos
-      Inclua todos os requerimentos necessários para atender à pretensão
-      Organize em formato de tópicos (a, b, c, etc.)
-      Garanta que os pedidos sejam coerentes com os argumentos apresentados e adequados ao tipo de petição
-      Os pedidos devem ter pelo menos 100 caracteres
-      
-      Formate sua resposta EXATAMENTE neste formato:
+      ESTRUTURA DA PETIÇÃO:
+      # CABEÇALHO
+      [Uma introdução adequada endereçada à autoridade competente]
       
       # I - DOS FATOS
-      [Sua versão melhorada dos fatos aqui]
+      [Exposição detalhada dos fatos apresentados, com cronologia clara e objetiva]
       
       # II - DOS FUNDAMENTOS JURÍDICOS
-      [Seus argumentos jurídicos aqui, incluindo fundamentação legal e doutrinária]
+      [Argumentação jurídica utilizando as seguintes referências:
+      - Jurisprudência: ${conhecimentosJuridicos.jurisprudencia.join(', ')}
+      - Doutrina: ${conhecimentosJuridicos.doutrina.join(', ')}
+      - Legislação: ${conhecimentosJuridicos.legislacao.join(', ')}]
       
       # III - DOS PEDIDOS
-      [Seus pedidos aqui, estruturados em tópicos]
+      [Lista numerada de pedidos claros e objetivos, incluindo:
+      1. Recebimento da petição
+      2. Consideração dos argumentos
+      3. Deferimento do pedido principal
+      4. Outros pedidos específicos ao caso]
       
-      REGRAS ADICIONAIS:
-      - Não cite a Lei 8.666/93 como fundamento, pois foi revogada
-      - Ao citar acórdãos do TCU, inclua o número no formato "Acórdão XXXX/AAAA-TCU-Plenário"
-      - Ao citar legislação, use o formato "Art. X da Lei nº Y/ZZZZ"
-      - Ao citar jurisprudência, use o formato "Tribunal, Número do Processo, Relator, Data"
-      - Ao citar doutrina, use o formato "AUTOR, Nome da Obra, Ano"
-      - Verifique a precisão de todas as citações legais
-      - Mantenha linguagem formal e técnica apropriada para peças jurídicas
+      # ENCERRAMENTO
+      [Fórmula de encerramento respeitosa]
       
-      IMPORTANTE: Use as referências jurídicas fornecidas, mas não mencione que elas foram extraídas de uma vector store.
+      ${enderecoECidade}
+      
+      ${assinaturaAdvogado}
       `;
     }
     
-    updateStatus(statusId, { progress: 60, message: 'Enviando para processamento...' });
+    updateStatus(statusId, { message: 'Enviando para processamento...' });
     console.log("Enviando prompt para a OpenAI...");
     
     // Inicializar variável para armazenar o conteúdo da petição
     let peticaoContent = "";
     
+    // Configurar timeout para a requisição OpenAI
+    const timeoutMs = isProduction ? 25000 : 45000;
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Tempo limite excedido ao conectar com OpenAI')), timeoutMs)
+    );
+    
     // Tentar gerar a petição com o prompt otimizado
     try {
       console.log("Tentando gerar petição...");
       
-      const completion = await openai.chat.completions.create({
+      // Usar race entre a chamada da API e o timeout
+      const completionPromise = openai.chat.completions.create({
         messages: [
           { 
             role: "system", 
-            content: `Você é um advogado experiente especializado em petições administrativas. Seja preciso.` 
+            content: `Você é um advogado experiente especializado em petições administrativas. Seja preciso e objetivo.` 
           },
           { role: "user", content: promptFinal }
         ],
-        model: isProduction ? "gpt-3.5-turbo" : modelConfig.model, // Forçar modelo mais rápido em produção
+        model: modelConfig.model,
         temperature: 0.5, // Temperatura mais baixa para maior objetividade
-        max_tokens: isProduction ? 1500 : modelConfig.maxTokens, // Limitar saída em produção
+        max_tokens: modelConfig.maxTokens,
       });
       
-      updateStatus(statusId, { progress: 80, message: 'Formatando resultado...' });
+      // Executar com timeout
+      const completion = await Promise.race([completionPromise, timeoutPromise]) as OpenAI.Chat.Completions.ChatCompletion;
+      
+      updateStatus(statusId, { message: 'Formatando resultado...' });
       
       peticaoContent = completion.choices[0].message.content || '';
       console.log("Petição gerada com sucesso. Tamanho:", peticaoContent.length);
     } catch (error) {
       console.error("Erro ao gerar petição:", error);
       
-      // Último recurso - gerar um template mínimo que sempre funciona
+      // Verificar se o erro é de timeout
+      const errorMessage = (error as Error).message || '';
+      if (errorMessage.includes('timeout') || errorMessage.includes('Tempo limite')) {
+        updateStatus(statusId, { 
+          error: 'Tempo limite excedido. Tente novamente com uma descrição mais curta ou em um horário com menos tráfego.' 
+        });
+        return;
+      }
+      
+      // Para outros erros, usar template de emergência
       try {
         console.log("Usando template de emergência...");
         
@@ -568,32 +593,33 @@ c) O provimento do pedido conforme os fundamentos expostos.
       }
     }
     
-    updateStatus(statusId, { progress: 90, message: 'Extraindo seções e salvando petição...' });
+    updateStatus(statusId, { message: 'Extraindo seções e salvando petição...' });
     
     // Extrair seções da petição
     const fatosMatch = peticaoContent.match(/I - DOS FATOS\s*([\s\S]*?)(?=II -|$)/i);
     const fundamentosMatch = peticaoContent.match(/II - DOS FUNDAMENTOS\s*([\s\S]*?)(?=III -|$)/i);
     const pedidosMatch = peticaoContent.match(/III - DOS PEDIDOS\s*([\s\S]*?)(?=IV -|$)/i);
     
-    const fatos = fatosMatch ? fatosMatch[1].trim() : '';
-    const fundamentos = fundamentosMatch ? fundamentosMatch[1].trim() : '';
-    const pedidos = pedidosMatch ? pedidosMatch[1].trim() : '';
+    // Extrair conteúdo das seções ou usar placeholders
+    const fatos = fatosMatch ? fatosMatch[1].trim() : 'Fatos conforme descritos.';
+    const fundamentos = fundamentosMatch ? fundamentosMatch[1].trim() : 'Fundamentos jurídicos aplicáveis.';
+    const pedidos = pedidosMatch ? pedidosMatch[1].trim() : 'Pedidos conforme normativas aplicáveis.';
     
-    // Validar o conteúdo e adicionar conteúdo padrão se necessário
+    // Adicionar cabeçalho e rodapé padrão se não existirem no conteúdo
     let conteudoFinal = peticaoContent;
-    if (!fatosMatch || fatos.length < 50) {
-      conteudoFinal = conteudoFinal.replace(/# I - DOS FATOS(\s*)([\s\S]*?)(?=# II|$)/i, 
-        `# I - DOS FATOS\n\n${description}\n\n`);
+    
+    // Verificar se já existe um cabeçalho, caso contrário adicionar
+    if (!conteudoFinal.includes("EXCELENTÍSSIMO") && !conteudoFinal.includes("ILUSTRÍSSIMO")) {
+      // Cabeçalho padrão
+      const cabecalho = `EXCELENTÍSSIMO(A) SENHOR(A) ${autoridade || 'AUTORIDADE COMPETENTE'}\n\n`;
+      conteudoFinal = cabecalho + conteudoFinal;
     }
     
-    if (!fundamentosMatch || fundamentos.length < 100) {
-      conteudoFinal = conteudoFinal.replace(/# II - DOS FUNDAMENTOS JURÍDICOS(\s*)([\s\S]*?)(?=# III|$)/i,
-        `# II - DOS FUNDAMENTOS JURÍDICOS\n\nConforme a Lei nº 14.133/2021, aplicável ao caso em tela, os fatos narrados possuem fundamento legal. O Art. 5º da referida lei estabelece os princípios que regem as licitações e contratos administrativos, sendo eles a legalidade, impessoalidade, moralidade, publicidade, eficiência, interesse público, probidade administrativa, entre outros.\n\nSegundo Marçal Justen Filho (Comentários à Lei de Licitações e Contratos Administrativos, 2021), a Administração Pública deve seguir estritamente os preceitos legais em seus procedimentos.\n\n`);
-    }
-    
-    if (!pedidosMatch || pedidos.length < 30) {
-      conteudoFinal = conteudoFinal.replace(/# III - DOS PEDIDOS(\s*)([\s\S]*?)(?=# IV|$)/i,
-        `# III - DOS PEDIDOS\n\nAnte o exposto, requer-se:\n\na) O recebimento da presente petição;\nb) A análise dos argumentos apresentados;\nc) O provimento do pedido conforme os fundamentos expostos.\n\n`);
+    // Verificar se já existe um rodapé com local e data, caso contrário adicionar
+    if (!conteudoFinal.includes(cidade) && cidade) {
+      // Rodapé padrão com local, data e assinatura
+      const rodape = `\n\n${cidade}, ${new Date(dataDocumento).toLocaleDateString('pt-BR')}.\n\n${nomeAdvogado || 'Advogado'}\nOAB ${numeroOAB || '00000'}`;
+      conteudoFinal += rodape;
     }
     
     // Salvar a petição no banco de dados
@@ -622,7 +648,6 @@ c) O provimento do pedido conforme os fundamentos expostos.
     // Atualizar status com o resultado completo
     updateStatus(statusId, {
       completed: true,
-      progress: 100,
       content: conteudoFinal,
       peticaoId: peticao.id,
       sections: {
@@ -648,5 +673,13 @@ function updateStatus(statusId: string, updates: any) {
   
   const currentStatus = peticoesEmProcessamento.get(statusId);
   peticoesEmProcessamento.set(statusId, { ...currentStatus, ...updates });
-  console.log(`Status atualizado para ${statusId}: ${updates.message || updates.progress || (updates.completed ? 'Completo' : 'Sem mensagem')}`);
+  
+  // Melhorar a mensagem de log para incluir mais detalhes
+  if (updates.message) {
+    console.log(`Status atualizado para ${statusId}: ${updates.message}`);
+  } else if (updates.completed) {
+    console.log(`Status atualizado para ${statusId}: 100`);
+  } else if (updates.error) {
+    console.log(`Erro para ${statusId}: ${updates.error}`);
+  }
 } 
