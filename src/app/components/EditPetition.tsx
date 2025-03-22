@@ -79,7 +79,7 @@ const TOOLTIPS = {
   motivo: "Explique resumidamente o motivo pelo qual você está criando esta petição.",
   descricao: "Descreva detalhadamente os fatos relevantes para embasar a petição.",
   autoridade: "Indique a autoridade competente a quem a petição será endereçada (ex: Pregoeiro, Presidente da Comissão, etc).",
-  contraparte: "Informe o nome da parte contrária no processo (órgão público, empresa, etc).",
+  contraparte: "Informe o nome da parte contrária no processo (órgão público, empresa, etc). Campo obrigatório apenas para Contrarrazões.",
   argumentos: "Descreva os argumentos jurídicos que sustentam seu pedido, citando leis, decretos, jurisprudências, etc.",
   pedido: "Especifique claramente o que você está pedindo ao órgão competente."
 };
@@ -145,9 +145,14 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
     setError("");
 
     try {
-      // Validar campos obrigatórios
-      if (!tipoPeticao || !processNumber || !entity || !reason || !description || !autoridade || !contraparte || !cidade || !dataDocumento || !nomeAdvogado || !numeroOAB) {
+      // Validar campos obrigatórios, excluindo contraparte
+      if (!tipoPeticao || !processNumber || !entity || !reason || !description || !autoridade || !cidade || !dataDocumento || !nomeAdvogado || !numeroOAB) {
         throw new Error("Todos os campos são obrigatórios");
+      }
+
+      // Validar contraparte apenas para Contrarrazões
+      if (tipoPeticao === "contrarrazoes" && !contraparte) {
+        throw new Error("O campo Contraparte é obrigatório para Contrarrazões");
       }
 
       // Obter o nome completo do tipo de petição
@@ -388,13 +393,13 @@ export default function EditPetition({ peticao }: EditPetitionProps) {
             />
           </div>
           <div>
-            {renderTooltip("contraparte", "Contraparte")}
+            {renderTooltip("contraparte", tipoPeticao === "contrarrazoes" ? "Contraparte *" : "Contraparte (opcional)")}
             <input 
               type="text" 
               id="contraparte"
               value={contraparte}
               onChange={(e) => setContraparte(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-4 py-2 border ${tipoPeticao === "contrarrazoes" ? "border-blue-300" : "border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
             />
           </div>
         </div>
