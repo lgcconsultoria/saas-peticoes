@@ -173,15 +173,21 @@ export default function NewPetition() {
       // Processar o resultado com base no status
       if (statusData.status === 'completed' && !peticaoGerada) {
         console.log("Petição concluída com sucesso!", statusData.peticaoId);
+
+
         // Petição concluída com sucesso
         setPeticaoGerada(statusData.content);
         setPeticaoId(statusData.peticaoId);
         setLoading(false);
         setStatusId(null);
         
-        // Mostrar toast de sucesso apenas quando a petição for realmente gerada
-        // e apenas se ainda não mostramos (verificando se peticaoGerada estava vazio)
-        showSuccess("Petição gerada com sucesso!");
+        if(window.localStorage.getItem('peticaoId') !== statusData.peticaoId.toString()) {
+          // Mostrar toast de sucesso apenas quando a petição for realmente gerada
+          // e apenas se ainda não mostramos (verificando se peticaoGerada estava vazio)
+          showSuccess("Petição gerada com sucesso!");
+        }
+
+        window.localStorage.setItem('peticaoId', statusData.peticaoId.toString());
         
         // Limpar o intervalo de polling
         if (pollingInterval) {
@@ -237,6 +243,8 @@ export default function NewPetition() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    debugger
 
     // Se já existe um processo em andamento, cancelar
     if (pollingInterval) {

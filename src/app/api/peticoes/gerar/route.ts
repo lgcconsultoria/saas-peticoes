@@ -507,7 +507,7 @@ CONHECIMENTOS JURÍDICOS DISPONÍVEIS:
     let peticaoContent = "";
     
     // Configurar timeout para a requisição OpenAI
-    const timeoutMs = isProduction ? 25000 : 45000;
+    const timeoutMs = isProduction ? 55000 : 45000;
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Tempo limite excedido ao conectar com OpenAI')), timeoutMs)
     );
