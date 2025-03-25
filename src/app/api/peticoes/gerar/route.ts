@@ -22,88 +22,331 @@ function getPrismaClient() {
 // Mock da integração com vector store
 // Esta função simula uma consulta à vector store para extrair conhecimentos jurídicos
 // No futuro, pode ser substituída por uma integração real com Pinecone, Qdrant, etc.
-async function consultarVectorStore(tipo: string, motivo: string, descricao: string) {
-  // ID da vector store mencionada no prompt
-  const VECTOR_STORE_ID = "vs_67ccae2f6a5881918aed7733d5509e61";
-  console.log(`Simulando consulta à vector store ID: ${VECTOR_STORE_ID}`);
-  
-  // Aqui você implementaria a consulta real ao seu banco de dados vetorial
-  // Por enquanto, retornamos dados simulados baseados no tipo de petição
-  
-  const conhecimentosJuridicos = {
-    "Recurso Administrativo": {
-      jurisprudencia: [
-        "Acórdão 2742/2023-TCU-Plenário",
-        "STJ, REsp 1.790.490/SP, Rel. Min. Herman Benjamin, 2019"
-      ],
-      doutrina: [
-        "JUSTEN FILHO, Marçal. Comentários à Lei de Licitações e Contratos Administrativos, 2021",
-        "BANDEIRA DE MELLO, Celso Antônio. Curso de Direito Administrativo, 2022"
-      ],
-      legislacao: [
-        "Art. 165 da Lei nº 14.133/2021",
-        "Art. 166 da Lei nº 14.133/2021"
-      ]
-    },
-    "Pedido de Reajustamento": {
-      jurisprudencia: [
-        "Acórdão 1431/2022-TCU-Plenário",
-        "STJ, REsp 1.809.832/RJ, Rel. Min. Og Fernandes, 2020"
-      ],
-      doutrina: [
-        "JUSTEN FILHO, Marçal. Comentários à Lei de Licitações e Contratos Administrativos, 2021",
-        "NIEBUHR, Joel de Menezes. Licitação Pública e Contrato Administrativo, 2020"
-      ],
-      legislacao: [
-        "Art. 124 da Lei nº 14.133/2021",
-        "Art. 135 da Lei nº 14.133/2021"
-      ]
-    },
-    "Contrarrazões": {
-      jurisprudencia: [
-        "Acórdão 754/2023-TCU-Plenário",
-        "STF, MS 24.073/DF, Rel. Min. Carlos Velloso, 2018"
-      ],
-      doutrina: [
-        "DI PIETRO, Maria Sylvia Zanella. Direito Administrativo, 2022",
-        "CARVALHO FILHO, José dos Santos. Manual de Direito Administrativo, 2023"
-      ],
-      legislacao: [
-        "Art. 165, §3º da Lei nº 14.133/2021",
-        "Art. 167 da Lei nº 14.133/2021"
-      ]
-    },
-    "Defesa de Sanções": {
-      jurisprudencia: [
-        "Acórdão 2212/2023-TCU-Plenário",
-        "STJ, AgRg no AREsp 573.925/PR, Rel. Min. Mauro Campbell Marques, 2019"
-      ],
-      doutrina: [
-        "BANDEIRA DE MELLO, Celso Antônio. Curso de Direito Administrativo, 2022",
-        "OLIVEIRA, Rafael Carvalho Rezende. Curso de Direito Administrativo, 2021"
-      ],
-      legislacao: [
-        "Art. 155 da Lei nº 14.133/2021",
-        "Art. 156 da Lei nº 14.133/2021"
-      ]
+async function consultarVectorStore(tipo: string, motivo: string, descricao: string): Promise<{ jurisprudencia: string[], doutrina: string[], legislacao: string[] }> {
+  try {
+    // Verificar se temos o ASSISTANT_ID configurado
+    if (!process.env.ASSISTANT_ID) {
+      console.error("ASSISTANT_ID não configurado no ambiente");
+      return await getFallbackKnowledge(tipo, motivo, descricao);
     }
+
+    console.log(`Consultando OpenAI Assistant ID: ${process.env.ASSISTANT_ID.substring(0, 5)}...`);
+
+    // Criar uma thread para a consulta
+    const thread = await openai.beta.threads.create();
+    console.log(`Thread criada com ID: ${thread.id}`);
+
+    // Montar uma mensagem estruturada para o Assistant
+    const mensagem = `Por favor, forneça conhecimentos jurídicos relevantes e específicos para uma petição do tipo "${tipo}" sobre o motivo "${motivo}". 
+    
+    CONTEXTO DO CASO:
+    ${descricao.substring(0, 800)}${descricao.length > 800 ? '... [texto truncado]' : ''}
+    
+    FORMATO DA RESPOSTA:
+    Por favor, estruture sua resposta nos seguintes tópicos obrigatórios:
+    
+    JURISPRUDÊNCIA:
+    - Liste acórdãos, decisões e precedentes específicos e diretamente relevantes para este caso do TCU, STF, STJ e outros tribunais
+    - Inclua o número completo do acórdão/decisão e a data
+    - Selecione jurisprudência que realmente traga valor à fundamentação da petição
+    
+    DOUTRINA:
+    - Cite autores e obras específicas para o tema
+    - Priorize publicações recentes de autores reconhecidos como Marçal Justen Filho, Di Pietro, etc.
+    
+    LEGISLAÇÃO:
+    - Liste artigos específicos de leis, decretos e normas diretamente aplicáveis a este caso
+    - Priorize a Lei 14.133/2021 (Nova Lei de Licitações)
+    - NÃO cite a Lei 8.666/93 (revogada)
+    - Certifique-se de que os artigos realmente se aplicam ao caso concreto descrito`;
+
+    // Enviar a mensagem para o Assistant
+    await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: mensagem
+    });
+
+    console.log("Mensagem enviada ao Assistant, executando...");
+
+    // Executar o Assistant
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: process.env.ASSISTANT_ID,
+    });
+
+    // Aguardar conclusão com timeout
+    let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    let contador = 0;
+    const maxTentativas = 45; // 45 segundos de timeout
+    
+    console.log("Aguardando resposta do Assistant...");
+    
+    while (runStatus.status !== "completed" && contador < maxTentativas) {
+      // Aguardar 1 segundo entre verificações
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      contador++;
+      
+      // Verificar status a cada segundo
+      try {
+        runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+        
+        // Se falhou ou foi cancelado, interromper
+        if (["failed", "cancelled", "expired"].includes(runStatus.status)) {
+          console.error(`Assistant falhou com status: ${runStatus.status}`);
+          return await getFallbackKnowledge(tipo, motivo, descricao);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar status do Assistant:", error);
+      }
+    }
+
+    // Se atingiu o timeout
+    if (contador >= maxTentativas) {
+      console.error("Timeout ao aguardar resposta do Assistant");
+      return await getFallbackKnowledge(tipo, motivo, descricao);
+    }
+
+    console.log("Assistant completou execução, obtendo mensagens...");
+
+    // Obter a resposta
+    const messages = await openai.beta.threads.messages.list(thread.id);
+    
+    // Verificar se há mensagens e conteúdo
+    if (!messages.data || messages.data.length === 0) {
+      console.error("Nenhuma mensagem recebida do Assistant");
+      return await getFallbackKnowledge(tipo, motivo, descricao);
+    }
+    
+    // Obter o conteúdo da primeira mensagem (resposta mais recente)
+    const messageContent = messages.data[0].content;
+    
+    if (!messageContent || messageContent.length === 0) {
+      console.error("Mensagem do Assistant sem conteúdo");
+      return await getFallbackKnowledge(tipo, motivo, descricao);
+    }
+    
+    // Extrair texto da resposta
+    let responseText = "";
+    
+    // Iterar sobre cada bloco de conteúdo e extrair texto
+    for (const content of messageContent) {
+      if (content.type === 'text') {
+        responseText += content.text.value + "\n";
+      }
+    }
+    
+    if (!responseText.trim()) {
+      console.error("Resposta do Assistant não contém texto");
+      return await getFallbackKnowledge(tipo, motivo, descricao);
+    }
+    
+    console.log("Resposta do Assistant recebida com sucesso");
+    console.log("Tamanho da resposta:", responseText.length, "caracteres");
+    
+    // Processar a resposta para extrair conhecimentos jurídicos
+    const conhecimentosJuridicos = processarRespostaAssistant(responseText);
+    
+    return conhecimentosJuridicos;
+
+  } catch (error) {
+    console.error("Erro ao consultar Assistant:", error);
+    return await getFallbackKnowledge(tipo, motivo, descricao);
+  }
+}
+
+// Função para processar a resposta do Assistant e extrair conhecimentos jurídicos
+function processarRespostaAssistant(responseText: string): { jurisprudencia: string[], doutrina: string[], legislacao: string[] } {
+  console.log("Processando resposta do Assistant...");
+  
+  // Objeto para armazenar os conhecimentos jurídicos extraídos
+  const conhecimentos = {
+    jurisprudencia: [] as string[],
+    doutrina: [] as string[],
+    legislacao: [] as string[]
   };
   
-  // Retornar o conhecimento jurídico correspondente ao tipo de petição
-  // Ou um valor padrão se o tipo não for encontrado
-  const resultado = conhecimentosJuridicos[tipo as keyof typeof conhecimentosJuridicos] || {
-    jurisprudencia: ["Acórdão 1234/2023-TCU-Plenário"],
-    doutrina: ["JUSTEN FILHO, Marçal. Comentários à Lei de Licitações e Contratos Administrativos, 2021"],
-    legislacao: ["Art. 5º da Lei nº 14.133/2021"]
-  };
+  try {
+    // Extrair seções pelo índice usando find de string em vez de regex
+    const text = responseText.toUpperCase();
+    let jurisprudencia: string[] = [];
+    let doutrina: string[] = [];
+    let legislacao: string[] = [];
+    
+    // Encontrar índices de cada seção
+    const jurisprudenciaIndex = text.indexOf("JURISPRUDÊNCIA");
+    const doutrinaIndex = text.indexOf("DOUTRINA");
+    const legislacaoIndex = text.indexOf("LEGISLAÇÃO");
+    
+    // Extrair jurisprudência
+    if (jurisprudenciaIndex !== -1 && doutrinaIndex !== -1 && jurisprudenciaIndex < doutrinaIndex) {
+      const content = responseText.substring(jurisprudenciaIndex + 13, doutrinaIndex).trim();
+      jurisprudencia = content.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.includes("JURISPRUDÊNCIA"));
+    }
+    
+    // Extrair doutrina
+    if (doutrinaIndex !== -1 && legislacaoIndex !== -1 && doutrinaIndex < legislacaoIndex) {
+      const content = responseText.substring(doutrinaIndex + 9, legislacaoIndex).trim();
+      doutrina = content.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.includes("DOUTRINA"));
+    }
+    
+    // Extrair legislação
+    if (legislacaoIndex !== -1) {
+      const content = responseText.substring(legislacaoIndex + 11).trim();
+      legislacao = content.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.includes("LEGISLAÇÃO"));
+    }
+    
+    // Atribuir os resultados encontrados
+    conhecimentos.jurisprudencia = jurisprudencia;
+    conhecimentos.doutrina = doutrina;
+    conhecimentos.legislacao = legislacao;
+    
+    // Validar que temos pelo menos alguns itens em cada categoria
+    if (conhecimentos.jurisprudencia.length === 0 && 
+        conhecimentos.doutrina.length === 0 && 
+        conhecimentos.legislacao.length === 0) {
+      
+      console.warn("Não foi possível extrair conhecimentos jurídicos estruturados. Usando texto completo para análise manual.");
+      
+      // Verificar se há citações de acórdãos TCU
+      const acordaosTCU = responseText.match(/Acórdão\s+\d+\/\d+/g);
+      if (acordaosTCU) {
+        conhecimentos.jurisprudencia = Array.from(new Set(acordaosTCU)).map(a => a.trim());
+      }
+      
+      // Verificar se há referências a artigos de lei
+      const artigos = responseText.match(/Art\.\s+\d+\s+da\s+Lei\s+(?:nº\s+)?\d+\.?\d*\/\d+/g);
+      if (artigos) {
+        conhecimentos.legislacao = Array.from(new Set(artigos)).map(a => a.trim());
+      }
+      
+      // Verificar por menções a autores comuns em doutrina jurídica
+      const autores = ["JUSTEN FILHO", "BANDEIRA DE MELLO", "DI PIETRO", "CARVALHO FILHO"].filter(
+        autor => responseText.includes(autor)
+      );
+      
+      if (autores.length > 0) {
+        conhecimentos.doutrina = autores.map(autor => `${autor} - Mencionado no contexto jurídico`);
+      }
+    }
+    
+    // Garantir que temos pelo menos um item em cada categoria
+    if (conhecimentos.jurisprudencia.length === 0) {
+      conhecimentos.jurisprudencia = ["Acórdão 2622/2013-TCU-Plenário - Estabelece faixas referenciais para BDI"];
+    }
+    
+    if (conhecimentos.doutrina.length === 0) {
+      conhecimentos.doutrina = ["JUSTEN FILHO, Marçal. Comentários à Lei de Licitações e Contratos Administrativos, 2021"];
+    }
+    
+    if (conhecimentos.legislacao.length === 0) {
+      conhecimentos.legislacao = ["Art. 18 da Lei nº 14.133/2021 - Fase preparatória da licitação"];
+    }
+    
+    console.log("Conhecimentos jurídicos extraídos com sucesso:", {
+      jurisprudenciaCount: conhecimentos.jurisprudencia.length,
+      doutrinaCount: conhecimentos.doutrina.length,
+      legislacaoCount: conhecimentos.legislacao.length
+    });
+    
+    return conhecimentos;
+  } catch (error) {
+    console.error("Erro ao processar resposta do Assistant:", error);
+    
+    // Retornar dados default em caso de erro no processamento
+    return {
+      jurisprudencia: [
+        "Acórdão 2622/2013-TCU-Plenário - Referencial para contratações públicas"
+      ],
+      doutrina: [
+        "JUSTEN FILHO, Marçal. Comentários à Lei de Licitações e Contratos Administrativos, 2021"
+      ],
+      legislacao: [
+        "Art. 6º da Lei nº 14.133/2021 - Definições para fins desta Lei"
+      ]
+    };
+  }
+}
+
+// Função para gerar conhecimentos jurídicos contextualizados caso o Assistant falhe
+async function getFallbackKnowledge(tipo: string, motivo?: string, descricao?: string): Promise<{ jurisprudencia: string[], doutrina: string[], legislacao: string[] }> {
+  console.log(`Gerando conhecimentos jurídicos contextualizados para tipo: ${tipo}`);
   
-  console.log("Conhecimentos jurídicos obtidos:", { 
-    jurisprudencia: resultado.jurisprudencia.length, 
-    doutrina: resultado.doutrina.length, 
-    legislacao: resultado.legislacao.length 
-  });
-  
-  return resultado;
+  try {
+    // Obter um modelo apropriado
+    const modelConfig = getModelConfig(descricao || "", process.env.VERCEL_ENV === 'production');
+    
+    // Criar um prompt contextualizado para obter informações jurídicas relevantes
+    const prompt = `Você é um advogado especializado em direito administrativo com profundo conhecimento da Nova Lei de Licitações (Lei 14.133/2021) e outras legislações relevantes.
+
+Preciso de conhecimentos jurídicos específicos para uma petição do tipo "${tipo}" ${motivo ? `relacionada a "${motivo}"` : ''}.
+${descricao ? `Contexto dos fatos: ${descricao.substring(0, 400)}...` : ''}
+
+Por favor, forneça:
+
+1. JURISPRUDÊNCIA: 
+   - Cite acórdãos específicos do TCU, STJ, STF ou outros tribunais relevantes para este caso específico.
+   - Inclua o número completo do acórdão/decisão e uma breve descrição da relevância.
+   - Priorize decisões recentes que estabeleçam precedentes importantes.
+
+2. DOUTRINA: 
+   - Indique autores e obras específicas que tratam diretamente do tema.
+   - Priorize autores renomados como Marçal Justen Filho, Maria Sylvia Di Pietro, José dos Santos Carvalho Filho.
+   - Mencione páginas ou capítulos específicos, se aplicável.
+
+3. LEGISLAÇÃO: 
+   - ANALISE DETALHADAMENTE a Lei 14.133/2021 (Nova Lei de Licitações) e identifique os artigos MAIS RELEVANTES para o caso concreto.
+   - Não se limite apenas aos artigos mais conhecidos - faça uma análise completa da lei.
+   - Inclua artigos de outras leis/decretos aplicáveis que sejam fundamentais para o caso.
+   - NÃO cite a Lei 8.666/93 (revogada).
+   - Para cada artigo citado, explique brevemente sua relevância para o caso.
+
+IMPORTANTE:
+- Seja específico e preciso. Não forneça conhecimentos jurídicos genéricos.
+- A qualidade e especificidade dos artigos legais citados é CRUCIAL para o sucesso da petição.
+- Estruture sua resposta com os cabeçalhos "JURISPRUDÊNCIA:", "DOUTRINA:" e "LEGISLAÇÃO:" claramente definidos.`;
+
+    // Chamar a API para obter conhecimentos jurídicos contextualizados
+    const response = await openai.chat.completions.create({
+      model: modelConfig.model,
+      messages: [
+        { role: "system", content: "Você é um assistente jurídico especializado em direito administrativo e licitações." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.5,
+      max_tokens: 1500
+    });
+
+    // Processar a resposta
+    const responseText = response.choices[0]?.message?.content || "";
+    if (!responseText) {
+      throw new Error("Resposta vazia da API");
+    }
+
+    // Usar a mesma função de processamento do Assistant
+    return processarRespostaAssistant(responseText);
+    
+  } catch (error) {
+    console.error("Erro ao gerar conhecimentos jurídicos contextualizados:", error);
+    
+    // Em caso de falha fatal, retornar um mínimo de informações genéricas
+    // para que a aplicação não quebre completamente
+    return {
+      jurisprudencia: [
+        "Acórdão 2622/2013-TCU-Plenário - Referencial para contratações públicas"
+      ],
+      doutrina: [
+        "JUSTEN FILHO, Marçal. Comentários à Lei de Licitações e Contratos Administrativos, 2021"
+      ],
+      legislacao: [
+        "Art. 6º da Lei nº 14.133/2021 - Definições para fins desta Lei"
+      ]
+    };
+  }
 }
 
 // Log environment variables (partially redacted for security)
@@ -404,7 +647,12 @@ async function generatePeticaoAsync(statusId: string, data: any, isProduction: b
     updateStatus(statusId, { message: 'Consultando conhecimentos jurídicos...' });
     
     // Buscar conhecimentos jurídicos relevantes (mocked na função consultarVectorStore)
-    console.log("Consultando vector store para obter conhecimentos jurídicos...");
+    console.log("Consultando OpenAI Assistant para obter conhecimentos jurídicos sobre:", {
+      tipo: tipoPeticao,
+      motivo: reason.substring(0, 50) + (reason.length > 50 ? "..." : ""),
+      descricaoLength: description ? description.length : 0
+    });
+    
     const conhecimentosJuridicos = await consultarVectorStore(tipoPeticao, reason, description);
     
     // Verificar se temos conhecimentos jurídicos
@@ -414,6 +662,13 @@ async function generatePeticaoAsync(statusId: string, data: any, isProduction: b
       });
       return;
     }
+    
+    console.log("Conhecimentos jurídicos obtidos do Assistant:", {
+      jurisprudencia: conhecimentosJuridicos.jurisprudencia.length,
+      doutrina: conhecimentosJuridicos.doutrina.length,
+      legislacao: conhecimentosJuridicos.legislacao.length,
+      total: conhecimentosJuridicos.jurisprudencia.length + conhecimentosJuridicos.doutrina.length + conhecimentosJuridicos.legislacao.length
+    });
     
     // Informações adicionais para a petição
     let enderecoECidade = '';
@@ -439,7 +694,8 @@ async function generatePeticaoAsync(statusId: string, data: any, isProduction: b
     promptFinal = `Você é um advogado especializado em direito administrativo. Sua tarefa é gerar uma petição jurídica completa com base no tipo, motivo e fatos fornecidos.
 INSTRUÇÕES:
 Analise cuidadosamente o TIPO de petição solicitada, o MOTIVO apresentado e os FATOS descritos.
-OBRIGATORIAMENTE utilize a vector store Gerador_peticao (ID: vs_67ccae2f6a5881918aed7733d5509e61) para extrair conhecimentos jurídicos, legislação, jurisprudência e doutrina pertinentes ao caso. Não Inclua referências claras a estas fontes em sua resposta, para que não apareça no texto as referências.
+OBRIGATORIAMENTE utilize os conhecimentos jurídicos (jurisprudência, doutrina e legislação) fornecidos neste prompt para fundamentar sua resposta.
+Você também deve pesquisar e utilizar OUTROS artigos específicos da legislação que sejam mais relevantes para o caso concreto, não se limitando apenas àqueles fornecidos neste prompt.
 Elabore uma petição completa contendo:
    a) FATOS APRIMORADOS:
 Reescreva os fatos apresentados dando-lhes um contexto jurídico específico para o tipo de petição solicitada
@@ -447,12 +703,12 @@ Organize cronologicamente e destaque os elementos juridicamente relevantes
 Adapte a linguagem para o contexto específico do tipo de petição escolhido pelo usuário
 Os fatos devem ter pelo menos 200 caracteres
    b) ARGUMENTOS JURÍDICOS:
-Fundamente com base na legislação pertinente, especialmente a Lei nº 14.133/2021 para licitações
-Inclua OBRIGATORIAMENTE referências a jurisprudência relevante (TCU, STJ, STF) extraídas da vector store
-Incorpore citações doutrinárias (como Marçal Justen Filho, Celso Antônio Bandeira de Mello, entre outros)
+Fundamente com base na legislação fornecida, especialmente a Lei nº 14.133/2021 para licitações
+Inclua OBRIGATORIAMENTE referências à jurisprudência relevante (TCU, STJ, STF) fornecida nos conhecimentos jurídicos deste prompt
+Incorpore citações doutrinárias fornecidas nos conhecimentos jurídicos
 Desenvolva argumentação sólida com pelo menos 2 parágrafos bem fundamentados
 Explique claramente por que a situação descrita nos fatos merece atenção jurídica
-Cite artigos específicos da legislação aplicável ao caso
+Cite artigos específicos da legislação fornecida nos conhecimentos jurídicos
 Os argumentos devem ter pelo menos 500 caracteres
    c) PEDIDO:
 Estruture pedidos claros, objetivos e específicos
@@ -464,12 +720,12 @@ Formate sua resposta EXATAMENTE neste formato:
 FATOS:
 [Sua versão melhorada dos fatos aqui]
 ARGUMENTOS:
-[Seus argumentos jurídicos aqui, incluindo fundamentação legal e doutrinária extraída da vector store]
+[Seus argumentos jurídicos aqui, incluindo fundamentação legal e doutrinária dos conhecimentos fornecidos]
 PEDIDO:
 [Seus pedidos aqui, estruturados em tópicos]
 É EXTREMAMENTE IMPORTANTE que você use exatamente os cabeçalhos "FATOS:", "ARGUMENTOS:" e "PEDIDO:" para que o sistema possa extrair corretamente as informações.
 REGRAS ADICIONAIS:
-SEMPRE consulte a vector store Gerador_peticao para obter informações jurídicas precisas
+NÃO SE LIMITE aos conhecimentos jurídicos fornecidos no prompt - busque e utilize artigos específicos da legislação mais adequados ao caso concreto
 Não cite a Lei 8.666/93 como fundamento, pois foi revogada
 Ao citar acórdãos do TCU, inclua o número no formato "Acórdão XXXX/AAAA-TCU-Plenário"
 Ao citar legislação, use o formato "Art. X da Lei nº Y/ZZZZ"
@@ -521,7 +777,7 @@ CONHECIMENTOS JURÍDICOS DISPONÍVEIS:
         messages: [
           { 
             role: "system", 
-            content: `Você é um advogado experiente especializado em petições administrativas. Seja preciso e objetivo.` 
+            content: `Você é um advogado experiente especializado em petições administrativas. Utilize APENAS os conhecimentos jurídicos fornecidos no prompt do usuário. Não invente legislação, jurisprudência ou doutrina. Seja técnico, objetivo e formal.` 
           },
           { role: "user", content: promptFinal }
         ],

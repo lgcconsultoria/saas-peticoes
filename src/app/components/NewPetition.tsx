@@ -244,8 +244,6 @@ export default function NewPetition() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    debugger
-
     // Se já existe um processo em andamento, cancelar
     if (pollingInterval) {
       clearInterval(pollingInterval);
