@@ -380,9 +380,11 @@ export async function POST(request: NextRequest) {
       })
     );
     
-    // Qualificação do cliente
+    // Combinar qualificação do cliente e introdução em um único parágrafo
     if (peticao.customer) {
       const endereco = `${peticao.customer.enderecoRua}, ${peticao.customer.enderecoNumero || 'S/N'}${peticao.customer.enderecoComplemento ? ', ' + peticao.customer.enderecoComplemento : ''}, ${peticao.customer.enderecoBairro || ''}, ${peticao.customer.enderecoCidade || ''} - ${peticao.customer.enderecoUF || ''}, CEP: ${peticao.customer.enderecoCEP || ''}`;
+      
+      const qualificacaoEIntroducao = `${peticao.customer.razaoSocial}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${peticao.customer.cnpj}, com sede em ${endereco}${peticao.customer.nomeResponsavel ? `, neste ato representada por ${peticao.customer.nomeResponsavel}` : ''}, já devidamente qualificada nos autos do processo em epígrafe, vem, respeitosamente, à presença de Vossa Excelência, por intermédio de seu advogado que esta subscreve, apresentar`;
       
       headerParagraphs.push(
         new docx.Paragraph({
@@ -391,13 +393,15 @@ export async function POST(request: NextRequest) {
           spacing: { after: 240 },
           children: [
             new docx.TextRun({
-              text: `${peticao.customer.razaoSocial}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${peticao.customer.cnpj}, com sede em ${endereco}${peticao.customer.nomeResponsavel ? `, neste ato representada por ${peticao.customer.nomeResponsavel}` : ''}`,
+              text: qualificacaoEIntroducao,
               size: 24, // 12pt
             }),
           ],
         })
       );
     } else if (peticao.entity) {
+      const qualificacaoEIntroducao = `${peticao.entity}, já devidamente qualificada nos autos do processo em epígrafe, vem, respeitosamente, à presença de Vossa Excelência, por intermédio de seu advogado que esta subscreve, apresentar`;
+      
       headerParagraphs.push(
         new docx.Paragraph({
           alignment: AlignmentType.JUSTIFIED,
@@ -405,7 +409,7 @@ export async function POST(request: NextRequest) {
           spacing: { after: 240 },
           children: [
             new docx.TextRun({
-              text: `${peticao.entity}`,
+              text: qualificacaoEIntroducao,
               size: 24, // 12pt
             }),
           ],
@@ -431,29 +435,6 @@ export async function POST(request: NextRequest) {
       default:
         tipoTexto = peticao.type.toUpperCase();
     }
-    
-    // Introdução com qualificação
-    let introducao = '';
-    if (peticao.customer) {
-      introducao = `${peticao.customer.razaoSocial}, já devidamente qualificada,`;
-    } else if (peticao.entity) {
-      introducao = `${peticao.entity},`;
-    }
-    introducao += ' devidamente qualificado nos autos do processo em epígrafe, vem, respeitosamente, à presença de Vossa Excelência, por intermédio de seu advogado que esta subscreve, apresentar';
-    
-    headerParagraphs.push(
-      new docx.Paragraph({
-        alignment: AlignmentType.JUSTIFIED,
-        indent: { firstLine: 720 },
-        spacing: { after: 240 },
-        children: [
-          new docx.TextRun({
-            text: introducao,
-            size: 24, // 12pt
-          }),
-        ],
-      })
-    );
     
     // Tipo de petição em destaque
     headerParagraphs.push(
@@ -508,9 +489,9 @@ export async function POST(request: NextRequest) {
     const footerParagraphs: docx.Paragraph[] = [];
     
     // Cidade e data
-    if (peticao.cidade || peticao.dataDocumento) {
-      const dataFormatada = peticao.dataDocumento ? formatarData(peticao.dataDocumento) : 'data atual';
-      const cidadeData = `${peticao.cidade || 'Local'}, ${dataFormatada}.`;
+    if (peticao.cidade && peticao.dataDocumento) {
+      const dataFormatada = formatarData(peticao.dataDocumento);
+      const cidadeData = `${peticao.cidade}, ${dataFormatada}.`;
       footerParagraphs.push(
         new docx.Paragraph({
           alignment: AlignmentType.RIGHT,
@@ -540,35 +521,35 @@ export async function POST(request: NextRequest) {
     );
     
     // Nome do advogado e OAB
-    if (peticao.nomeAdvogado || peticao.numeroOAB) {
+    if (peticao.nomeAdvogado) {
       footerParagraphs.push(
         new docx.Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 240 },
           children: [
             new docx.TextRun({
-              text: `${peticao.nomeAdvogado || 'Advogado'}`,
+              text: peticao.nomeAdvogado,
               bold: true,
               size: 24, // 12pt
             }),
           ],
         })
       );
-      
-      if (peticao.numeroOAB) {
-        footerParagraphs.push(
-          new docx.Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 240 },
-            children: [
-              new docx.TextRun({
-                text: `OAB ${peticao.numeroOAB}`,
-                size: 24, // 12pt
-              }),
-            ],
-          })
-        );
-      }
+    }
+    
+    if (peticao.numeroOAB) {
+      footerParagraphs.push(
+        new docx.Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+          children: [
+            new docx.TextRun({
+              text: `OAB ${peticao.numeroOAB}`,
+              size: 24, // 12pt
+            }),
+          ],
+        })
+      );
     }
     
     // Criar o documento DOCX com formatação adequada
