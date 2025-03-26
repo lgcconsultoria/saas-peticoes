@@ -19,9 +19,6 @@ function getPrismaClient() {
   return prismaClient;
 }
 
-// Mock da integração com vector store
-// Esta função simula uma consulta à vector store para extrair conhecimentos jurídicos
-// No futuro, pode ser substituída por uma integração real com Pinecone, Qdrant, etc.
 async function consultarVectorStore(tipo: string, motivo: string, descricao: string): Promise<{ jurisprudencia: string[], doutrina: string[], legislacao: string[] }> {
   try {
     // Verificar se temos o ASSISTANT_ID configurado

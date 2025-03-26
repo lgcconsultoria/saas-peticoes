@@ -72,8 +72,8 @@ export default function NewPetition() {
   const [peticaoGerada, setPeticaoGerada] = useState("");
   const [peticaoId, setPeticaoId] = useState<number | null>(null);
   const [customers, setCustomers] = useState<{id: string, razaoSocial: string}[]>([]);
-  const [retryCount, setRetryCount] = useState(0);
-  const maxRetries = 2;
+  // const [retryCount, setRetryCount] = useState(0);
+  // const maxRetries = 2;
   // Novos estados para o processamento assíncrono
   const [statusId, setStatusId] = useState<string | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
@@ -323,7 +323,7 @@ export default function NewPetition() {
         // Atualizar o estado
         setStatusId(newStatusId);
         
-        console.log("Iniciando polling com status ID:", newStatusId);
+        console.log("Iniciando polling com status ID: ", newStatusId);
         
         // Contador para implementar backoff exponencial (reduz a frequência de polling com o tempo)
         let pollCount = 0;
