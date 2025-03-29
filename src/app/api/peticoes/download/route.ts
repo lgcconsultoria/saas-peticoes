@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import * as docx from 'docx';
-import { AlignmentType } from 'docx';
+import { AlignmentType, Document, Packer } from 'docx';
 import { prisma } from "@/lib/prisma";
 import { saveAs } from "file-saver";
+import * as fs from 'fs/promises';
+import path from "path";
+// Importar as dependências para manipulação de templates DOCX
+import PizZip from 'pizzip';
+import Docxtemplater from "docxtemplater";
+import { writeFile } from "fs/promises";
+import { promisify } from "util";
+import { mkdir } from "fs/promises";
+import { readFile } from "fs/promises";
 
 const prismaClient = new PrismaClient();
 
@@ -63,584 +72,238 @@ async function getUserId(): Promise<number> {
   return user?.id || 0;
 }
 
-// Função para processar o texto e criar parágrafos formatados
-function processTextToDocumentParagraphs(content: string): docx.Paragraph[] {
-  // Pré-processamento para remover formatação Markdown e aplicar formatação DOCX
-  content = preprocessMarkdown(content);
+// Função para extrair seções do conteúdo da petição
+function extrairSecoes(content: string): { fatos: string, argumentos: string, pedidos: string } {
+  // Valores padrão
+  let fatos = '';
+  let argumentos = '';
+  let pedidos = '';
   
-  // Dividir o conteúdo em linhas
-  const lines = content.split('\n');
-  const paragraphs: docx.Paragraph[] = [];
+  // Verificar se o conteúdo é válido
+  if (!content || typeof content !== 'string') {
+    console.warn('Conteúdo inválido fornecido para extrairSecoes');
+    return { fatos, argumentos, pedidos };
+  }
   
-  let inList = false;
-  let listItemNumber = 1;
-  
-  // Processar cada linha
-  lines.forEach((line, index) => {
-    // Pular linhas vazias mas adicionar espaço
-    if (line.trim() === '') {
-      paragraphs.push(new docx.Paragraph({
-        spacing: {
-          after: 200,
-        },
-      }));
-      return;
-    }
+  try {
+    // Extrair cada seção usando expressões regulares
+    // Padrão 1: FATOS: texto ARGUMENTOS: texto PEDIDO: texto
+    const fatosMatch = content.match(/FATOS:?\s*([\s\S]*?)(?=ARGUMENTOS:?|$)/i);
+    const argumentosMatch = content.match(/ARGUMENTOS:?\s*([\s\S]*?)(?=PEDIDO:?|$)/i);
+    const pedidosMatch = content.match(/PEDIDO:?\s*([\s\S]*?)(?=$)/i);
     
-    // Verificar se é um título (em maiúsculas)
-    const isTitle = line.trim() === line.trim().toUpperCase() && line.trim().length > 3;
-    
-    // Verificar se é o cabeçalho (primeiras linhas)
-    const isHeader = index < 5 && (line.includes('EXCELENTÍSSIMO') || line.includes('ILUSTRÍSSIMO') || line.includes('SENHOR'));
-    
-    // Verificar se é uma assinatura (últimas linhas)
-    const isSignature = index > lines.length - 5 && (line.includes('Advogado') || line.includes('OAB'));
-    
-    // Verificar se é um item de lista numerada
-    const listItemMatch = line.trim().match(/^(\d+)[\.\)]\s+(.+)$/);
-    const isListItem = !!listItemMatch;
-    
-    // Verificar se é um item de lista com marcadores
-    const bulletListItemMatch = line.trim().match(/^[\-\*•]\s+(.+)$/);
-    const isBulletListItem = !!bulletListItemMatch;
-    
-    // Verificar se é uma citação (recuada e com fonte menor)
-    const isCitation = line.trim().startsWith('"') && line.trim().endsWith('"') && line.trim().length > 20;
-    
-    // Verificar se é uma data/local (geralmente no final)
-    const isDateLocation = index > lines.length - 10 && 
-                          (line.includes('de') && 
-                           (line.includes('janeiro') || line.includes('fevereiro') || 
-                            line.includes('março') || line.includes('abril') || 
-                            line.includes('maio') || line.includes('junho') || 
-                            line.includes('julho') || line.includes('agosto') || 
-                            line.includes('setembro') || line.includes('outubro') || 
-                            line.includes('novembro') || line.includes('dezembro')));
-    
-    // Configurações básicas do parágrafo
-    const baseOptions = {
-      style: isTitle ? "Heading2" : "Normal",
-      alignment: isTitle || isHeader ? AlignmentType.CENTER : 
-                isSignature || isDateLocation ? AlignmentType.CENTER : 
-                isListItem || isBulletListItem ? AlignmentType.LEFT : 
-                AlignmentType.JUSTIFIED,
-      spacing: {
-        before: isTitle ? 400 : 200,
-        after: isTitle ? 400 : 200,
-        line: 360, // Espaçamento entre linhas (1.5)
-      },
-      indent: {
-        firstLine: isTitle || isHeader || isSignature || isListItem || isBulletListItem ? 0 : 720, // Recuo de primeira linha para parágrafos normais
-      },
-    };
-    
-    let paragraph: docx.Paragraph;
-    
-    // Configurações específicas para cada tipo de parágrafo
-    if (isListItem) {
-      // Extrair o número e o texto do item
-      const itemNumber = parseInt(listItemMatch![1]);
-      const itemText = listItemMatch![2];
-      
-      // Resetar a contagem se o número for 1 e não estávamos em uma lista ou se o número for menor que o anterior
-      if ((itemNumber === 1 && !inList) || (inList && itemNumber < listItemNumber)) {
-        inList = true;
-        listItemNumber = 1;
-      }
-      
-      // Criar parágrafo para item de lista numerada
-      paragraph = new docx.Paragraph({
-        ...baseOptions,
-        bullet: {
-          level: 0,
-        },
-        numbering: {
-          reference: "petitionList",
-          level: 0,
-          instance: itemNumber === 1 ? listItemNumber : undefined,
-        },
-        indent: {
-          left: 720, // Recuo à esquerda para itens de lista
-          hanging: 360, // Recuo suspenso para a numeração
-        },
-        children: [
-          new docx.TextRun({
-            text: itemText,
-          }),
-        ],
-      });
-      
-      listItemNumber++;
-    } else if (isBulletListItem) {
-      // Extrair o texto do item
-      const itemText = bulletListItemMatch![1];
-      
-      // Criar parágrafo para item de lista com marcadores
-      paragraph = new docx.Paragraph({
-        ...baseOptions,
-        bullet: {
-          level: 0,
-        },
-        indent: {
-          left: 720, // Recuo à esquerda para itens de lista
-          hanging: 360, // Recuo suspenso para o marcador
-        },
-        children: [
-          new docx.TextRun({
-            text: itemText,
-          }),
-        ],
-      });
-    } else if (isCitation) {
-      // Criar parágrafo para citação
-      paragraph = new docx.Paragraph({
-        ...baseOptions,
-        indent: {
-          left: 1440, // Recuo maior para citações
-          right: 1440,
-        },
-        children: [
-          new docx.TextRun({
-            text: line.trim(),
-            italics: true,
-            size: 22, // Tamanho menor (11pt)
-          }),
-        ],
-      });
-    } else if (isDateLocation) {
-      // Criar parágrafo para data/local
-      paragraph = new docx.Paragraph({
-        ...baseOptions,
-        alignment: AlignmentType.RIGHT,
-        children: [
-          new docx.TextRun({
-            text: line.trim(),
-          }),
-        ],
-      });
+    // Padrão 2: DOS FATOS texto DOS ARGUMENTOS JURÍDICOS texto DOS PEDIDOS texto
+    if (!fatosMatch) {
+      const fatosMatch2 = content.match(/DOS FATOS\s*([\s\S]*?)(?=DOS ARGUMENTOS|$)/i);
+      if (fatosMatch2) fatos = fatosMatch2[1].trim();
     } else {
-      // Processar formatação inline (negrito, itálico, etc.)
-      const textRuns = processInlineFormatting(line.trim());
+      fatos = fatosMatch[1].trim();
+    }
+    
+    if (!argumentosMatch) {
+      const argumentosMatch2 = content.match(/DOS ARGUMENTOS(?: JURÍDICOS)?\s*([\s\S]*?)(?=DOS PEDIDOS|$)/i);
+      if (argumentosMatch2) argumentos = argumentosMatch2[1].trim();
+    } else {
+      argumentos = argumentosMatch[1].trim();
+    }
+    
+    if (!pedidosMatch) {
+      const pedidosMatch2 = content.match(/DOS PEDIDOS\s*([\s\S]*?)(?=$)/i);
+      if (pedidosMatch2) pedidos = pedidosMatch2[1].trim();
+    } else {
+      pedidos = pedidosMatch[1].trim();
+    }
+    
+    // Se não encontrar usando os padrões acima, tenta dividir o texto em partes
+    if (!fatos && !argumentos && !pedidos) {
+      const partes = content.split(/\n\n|\r\n\r\n/);
       
-      // Criar parágrafo para texto normal
-      paragraph = new docx.Paragraph({
-        ...baseOptions,
-        children: textRuns,
-      });
+      if (partes.length >= 3) {
+        fatos = partes[0].trim();
+        argumentos = partes[1].trim();
+        pedidos = partes[2].trim();
+      } else if (partes.length === 2) {
+        fatos = partes[0].trim();
+        argumentos = partes[1].trim();
+      } else if (partes.length === 1) {
+        fatos = partes[0].trim();
+      }
     }
     
-    paragraphs.push(paragraph);
+    console.log('Extração de seções concluída:');
+    console.log(`Fatos: ${fatos.substring(0, 50)}${fatos.length > 50 ? '...' : ''}`);
+    console.log(`Argumentos: ${argumentos.substring(0, 50)}${argumentos.length > 50 ? '...' : ''}`);
+    console.log(`Pedidos: ${pedidos.substring(0, 50)}${pedidos.length > 50 ? '...' : ''}`);
     
-    // Atualizar o estado da lista
-    if (!isListItem && !isBulletListItem) {
-      inList = false;
-    }
-  });
-  
-  return paragraphs;
-}
-
-// Função para pré-processar o texto Markdown
-function preprocessMarkdown(text: string): string {
-  // Processar cabeçalhos Markdown (# Título)
-  text = text.replace(/^#+\s+(.*?)$/gm, '$1');
-  
-  // Processar listas Markdown
-  text = text.replace(/^\s*[-*+]\s+(.*?)$/gm, '• $1');
-  text = text.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '$1. $2');
-  
-  // Processar links Markdown [texto](url)
-  text = text.replace(/\[(.*?)\]\((.*?)\)/g, '$1');
-  
-  // Processar imagens Markdown ![alt](url)
-  text = text.replace(/!\[(.*?)\]\((.*?)\)/g, '$1');
-  
-  // Processar blocos de código
-  text = text.replace(/```[\s\S]*?```/g, (match) => {
-    return match.replace(/```([\s\S]*?)```/g, '$1').trim();
-  });
-  
-  // Processar código inline
-  text = text.replace(/`(.*?)`/g, '$1');
-  
-  // Processar citações
-  text = text.replace(/^\s*>\s+(.*?)$/gm, '$1');
-  
-  // Processar linhas horizontais
-  text = text.replace(/^\s*[-*_]{3,}\s*$/gm, '');
-  
-  // Remover espaços extras
-  text = text.replace(/\n{3,}/g, '\n\n');
-  
-  return text;
-}
-
-// Função para processar formatação inline (negrito, itálico, etc.)
-function processInlineFormatting(text: string): docx.TextRun[] {
-  // Verificar se o texto contém formatação
-  const hasBold = text.includes('**');
-  const hasItalic = text.includes('*');
-  
-  // Remover as marcações de formatação do texto
-  let cleanText = text;
-  
-  // Remover marcações de negrito primeiro (para não confundir com itálico)
-  if (hasBold) {
-    cleanText = cleanText.replace(/\*\*(.*?)\*\*/g, '$1');
+  } catch (error) {
+    console.error('Erro ao extrair seções:', error);
   }
   
-  // Remover marcações de itálico
-  if (hasItalic) {
-    cleanText = cleanText.replace(/\*(.*?)\*/g, '$1');
-  }
-  
-  // Criar TextRun com a formatação apropriada
-  return [
-    new docx.TextRun({
-      text: cleanText,
-      bold: hasBold,
-      italics: hasItalic && !hasBold // Aplicar itálico apenas se não for negrito
-    })
-  ];
+  return {
+    fatos: fatos || 'Não foi possível extrair os fatos.',
+    argumentos: argumentos || 'Não foi possível extrair os argumentos.',
+    pedidos: pedidos || 'Não foi possível extrair os pedidos.'
+  };
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession();
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-    }
-    
-    const userId = await getUserId();
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
-    }
-    
     const data = await request.json();
-    const { peticaoId, content } = data;
+    const { peticaoId, content, teste } = data;
     
-    // Verificar se a petição existe e pertence ao usuário
-    const peticao = await prismaClient.petition.findFirst({
-      where: {
-        id: peticaoId,
-        userId: userId
-      },
-      include: {
-        user: true, // Incluir dados do usuário para o documento
-        customer: true // Incluir dados do cliente
-      } as PeticaoInclude
-    }) as PeticaoWithCustomer; // Type assertion para contornar as limitações do TypeScript
+    // Verificar se está em modo de teste
+    const modoTeste = teste === true;
     
-    if (!peticao) {
-      return NextResponse.json({ error: 'Petição não encontrada' }, { status: 404 });
-    }
+    let userId = 0;
+    let peticao: PeticaoWithCustomer | null = null;
     
-    // Criar cabeçalho da petição com os dados do processo
-    const headerParagraphs: docx.Paragraph[] = [];
-    
-    // Título da petição (EXCELENTÍSSIMO SENHOR...)
-    headerParagraphs.push(
-      new docx.Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 240 },
-        children: [
-          new docx.TextRun({
-            text: `EXCELENTÍSSIMO(A) SENHOR(A) ${peticao.autoridade || 'DOUTOR(A) JUIZ(A) DE DIREITO'}`,
-            bold: true,
-            size: 24, // 12pt
-          }),
-        ],
-      })
-    );
-    
-    // Processo
-    if (peticao.processNumber) {
-      headerParagraphs.push(
-        new docx.Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 240 },
-          children: [
-            new docx.TextRun({
-              text: `Processo nº ${peticao.processNumber}`,
-              bold: true,
-              size: 24, // 12pt
-            }),
-          ],
-        })
-      );
-    }
-    
-    // Separador
-    headerParagraphs.push(
-      new docx.Paragraph({
-        spacing: { after: 480 }, // Espaço maior
-        children: [],
-      })
-    );
-    
-    // Combinar qualificação do cliente e introdução em um único parágrafo
-    if (peticao.customer) {
-      const endereco = `${peticao.customer.enderecoRua}, ${peticao.customer.enderecoNumero || 'S/N'}${peticao.customer.enderecoComplemento ? ', ' + peticao.customer.enderecoComplemento : ''}, ${peticao.customer.enderecoBairro || ''}, ${peticao.customer.enderecoCidade || ''} - ${peticao.customer.enderecoUF || ''}, CEP: ${peticao.customer.enderecoCEP || ''}`;
+    // Bypass de autenticação para testes
+    if (!modoTeste) {
+      const session = await getServerSession();
       
-      const qualificacaoEIntroducao = `${peticao.customer.razaoSocial}, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${peticao.customer.cnpj}, com sede em ${endereco}${peticao.customer.nomeResponsavel ? `, neste ato representada por ${peticao.customer.nomeResponsavel}` : ''}, já devidamente qualificada nos autos do processo em epígrafe, vem, respeitosamente, à presença de Vossa Excelência, por intermédio de seu advogado que esta subscreve, apresentar`;
+      if (!session) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+      }
       
-      headerParagraphs.push(
-        new docx.Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          indent: { firstLine: 720 },
-          spacing: { after: 240 },
-          children: [
-            new docx.TextRun({
-              text: qualificacaoEIntroducao,
-              size: 24, // 12pt
-            }),
-          ],
-        })
-      );
-    } else if (peticao.entity) {
-      const qualificacaoEIntroducao = `${peticao.entity}, já devidamente qualificada nos autos do processo em epígrafe, vem, respeitosamente, à presença de Vossa Excelência, por intermédio de seu advogado que esta subscreve, apresentar`;
+      userId = await getUserId();
       
-      headerParagraphs.push(
-        new docx.Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          indent: { firstLine: 720 },
-          spacing: { after: 240 },
-          children: [
-            new docx.TextRun({
-              text: qualificacaoEIntroducao,
-              size: 24, // 12pt
-            }),
-          ],
-        })
-      );
-    }
-    
-    // Tipo de petição e parte introdutória
-    let tipoTexto = '';
-    switch (peticao.type.toLowerCase()) {
-      case 'recurso administrativo':
-        tipoTexto = 'RECURSO ADMINISTRATIVO';
-        break;
-      case 'pedido de reajustamento':
-        tipoTexto = 'PEDIDO DE REAJUSTAMENTO';
-        break;
-      case 'contrarrazões':
-        tipoTexto = 'CONTRARRAZÕES AO RECURSO ADMINISTRATIVO';
-        break;
-      case 'defesa de sanções':
-        tipoTexto = 'DEFESA ADMINISTRATIVA';
-        break;
-      default:
-        tipoTexto = peticao.type.toUpperCase();
-    }
-    
-    // Tipo de petição em destaque
-    headerParagraphs.push(
-      new docx.Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 240, after: 240 },
-        children: [
-          new docx.TextRun({
-            text: tipoTexto,
-            bold: true,
-            size: 24, // 12pt
-          }),
-        ],
-      })
-    );
-    
-    // Contraparte
-    if (peticao.contraparte) {
-      headerParagraphs.push(
-        new docx.Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          indent: { firstLine: 720 },
-          spacing: { after: 480 },
-          children: [
-            new docx.TextRun({
-              text: `em face de ${peticao.contraparte}, pelas razões de fato e de direito a seguir expostas.`,
-              size: 24, // 12pt
-            }),
-          ],
-        })
-      );
-    } else {
-      headerParagraphs.push(
-        new docx.Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          indent: { firstLine: 720 },
-          spacing: { after: 480 },
-          children: [
-            new docx.TextRun({
-              text: `pelas razões de fato e de direito a seguir expostas.`,
-              size: 24, // 12pt
-            }),
-          ],
-        })
-      );
-    }
-    
-    // Processar o conteúdo principal e criar parágrafos formatados
-    const contentParagraphs = processTextToDocumentParagraphs(content);
-    
-    // Criar rodapé da petição
-    const footerParagraphs: docx.Paragraph[] = [];
-    
-    // Cidade e data
-    if (peticao.cidade && peticao.dataDocumento) {
-      const dataFormatada = formatarData(peticao.dataDocumento);
-      const cidadeData = `${peticao.cidade}, ${dataFormatada}.`;
-      footerParagraphs.push(
-        new docx.Paragraph({
-          alignment: AlignmentType.RIGHT,
-          spacing: { before: 480, after: 480 },
-          children: [
-            new docx.TextRun({
-              text: cidadeData,
-              size: 24, // 12pt
-            }),
-          ],
-        })
-      );
-    }
-    
-    // Espaço para assinatura
-    footerParagraphs.push(
-      new docx.Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 480, after: 240 },
-        children: [
-          new docx.TextRun({
-            text: '________________________________________',
-            size: 24, // 12pt
-          }),
-        ],
-      })
-    );
-    
-    // Nome do advogado e OAB
-    if (peticao.nomeAdvogado) {
-      footerParagraphs.push(
-        new docx.Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 240 },
-          children: [
-            new docx.TextRun({
-              text: peticao.nomeAdvogado,
-              bold: true,
-              size: 24, // 12pt
-            }),
-          ],
-        })
-      );
-    }
-    
-    if (peticao.numeroOAB) {
-      footerParagraphs.push(
-        new docx.Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 240 },
-          children: [
-            new docx.TextRun({
-              text: `OAB ${peticao.numeroOAB}`,
-              size: 24, // 12pt
-            }),
-          ],
-        })
-      );
-    }
-    
-    // Criar o documento DOCX com formatação adequada
-    const doc = new docx.Document({
-      styles: {
-        paragraphStyles: [
-          {
-            id: "Normal",
-            name: "Normal",
-            run: {
-              font: "Times New Roman",
-              size: 24, // 12pt
-            },
-            paragraph: {
-              spacing: {
-                line: 360, // Espaçamento entre linhas (1.5)
-                before: 200,
-                after: 200,
-              },
-            },
-          },
-          {
-            id: "Heading2",
-            name: "Heading 2",
-            run: {
-              font: "Times New Roman",
-              size: 24, // 12pt
-              bold: true,
-            },
-            paragraph: {
-              spacing: {
-                before: 400,
-                after: 400,
-              },
-            },
-          },
-        ],
-      },
-      numbering: {
-        config: [
-          {
-            reference: "petitionList",
-            levels: [
-              {
-                level: 0,
-                format: "decimal",
-                text: "%1.",
-                alignment: AlignmentType.LEFT,
-                style: {
-                  paragraph: {
-                    indent: { left: 720, hanging: 360 },
-                  },
-                },
-              },
-              {
-                level: 1,
-                format: "lowerLetter",
-                text: "%2)",
-                alignment: AlignmentType.LEFT,
-                style: {
-                  paragraph: {
-                    indent: { left: 1440, hanging: 360 },
-                  },
-                },
-              },
-            ],
-          },
-        ],
-      },
-      sections: [
-        {
-          properties: {
-            page: {
-              margin: {
-                top: 1440, // 1 polegada (720 = 0.5 polegada)
-                right: 1440,
-                bottom: 1440,
-                left: 1440,
-              },
-            },
-          },
-          children: [...headerParagraphs, ...contentParagraphs, ...footerParagraphs],
+      if (!userId) {
+        return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+      }
+      
+      // Verificar se a petição existe e pertence ao usuário
+      peticao = await prismaClient.petition.findFirst({
+        where: {
+          id: peticaoId,
+          userId: userId
         },
-      ],
+        include: {
+          user: true, // Incluir dados do usuário para o documento
+          customer: true // Incluir dados do cliente
+        } as PeticaoInclude
+      }) as PeticaoWithCustomer; // Type assertion para contornar as limitações do TypeScript
+      
+      if (!peticao) {
+        return NextResponse.json({ error: 'Petição não encontrada' }, { status: 404 });
+      }
+    } else {
+      console.log('Modo de teste ativado - usando dados simulados');
+      // Criar um objeto simulado para testes
+      peticao = {
+        id: 1,
+        processNumber: 'Processo Administrativo nº 123/2023',
+        type: 'recurso',
+        entity: 'Prefeitura Municipal de São Paulo',
+        reason: 'Desclassificação indevida em processo licitatório',
+        description: 'Descrição detalhada do processo licitatório',
+        arguments: 'Argumentos jurídicos detalhados sobre o processo',
+        request: 'Pedidos específicos para o recurso',
+        modalidade: 'Pregão Eletrônico',
+        objeto: 'Contratação de serviços de TI',
+        autoridade: 'EXCELENTÍSSIMO(A) SENHOR(A)',
+        contraparte: 'Prefeitura Municipal de São Paulo',
+        cidade: 'São Paulo',
+        dataDocumento: '2023-03-20',
+        nomeAdvogado: 'Dr. José Santos',
+        numeroOAB: 'SP 123.456',
+        customer: {
+          id: '1',
+          razaoSocial: 'Empresa XYZ Ltda.',
+          nomeFantasia: 'XYZ Tecnologia',
+          cnpj: '12.345.678/0001-90',
+          email: 'contato@xyz.com.br',
+          enderecoRua: 'Av. Paulista',
+          enderecoNumero: '1000',
+          enderecoComplemento: 'Sala 100',
+          enderecoBairro: 'Bela Vista',
+          enderecoCidade: 'São Paulo',
+          enderecoUF: 'SP',
+          enderecoCEP: '01310-100',
+          nomeResponsavel: 'João da Silva'
+        }
+      };
+    }
+    
+    // Extrair as seções do conteúdo
+    const { fatos, argumentos, pedidos } = extrairSecoes(content);
+    
+    // Converter os dados da petição para o formato esperado pelo Docxtemplater
+    const dadosParaTemplate: Record<string, string> = {
+      COMPETENTE: peticao.autoridade || '',
+      CIDADE: peticao.cidade || '',
+      MODALIDADE: peticao.modalidade || '',
+      PROCESSO: peticao.processNumber || '',
+      OBJETO: peticao.objeto || '',
+      INTRODUCAO: (peticao.customer?.razaoSocial ? peticao.customer.razaoSocial : (peticao.entity || ' ')) + 
+        (peticao.customer?.cnpj ? (`, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº ${peticao.customer.cnpj}`) : ' ') + 
+        ', vem, respeitosamente, apresentar ' + 
+        (peticao.type ? peticao.type.toUpperCase() : 'RECURSO ADMINISTRATIVO') +
+        (peticao.contraparte ? (` contra ${peticao.contraparte}`) : ' ') + 
+        ', pelos motivos de fato e de direito a seguir expostos.',
+      TEMPESTIVIDADE: `O presente ${peticao.type || 'recurso'} é tempestivo, conforme estabelecido na legislação aplicável.`,
+      FATOS: fatos || 'Não foi possível extrair os fatos.',
+      ARGUMENTOS: argumentos || 'Não foi possível extrair os argumentos.',
+      EXEQUIBILIDADE: 'A proposta apresentada é plenamente exequível, conforme demonstrado nos documentos anexos.',
+      CONCLUSAO: `Diante do exposto, requer-se o provimento do presente ${peticao.type || 'recurso'}.`,
+      PEDIDO: pedidos || 'Não foi possível extrair os pedidos.',
+      DATA: peticao.dataDocumento ? formatarData(peticao.dataDocumento) : formatarData(new Date().toISOString().split('T')[0]),
+      NOME_ADVOGADO: peticao.nomeAdvogado || ' ',
+      NUMERO_OAB: peticao.numeroOAB ? `OAB ${peticao.numeroOAB}` : ' ',
+    };
+    
+    // Logar quaisquer valores undefined
+    Object.entries(dadosParaTemplate).forEach(([chave, valor]) => {
+      if (!valor) {
+        console.warn(`Valor não definido para ${chave}, substituindo por string vazia`);
+      }
+    });
+
+    // Caminho do arquivo de template
+    const templatePath = path.join(process.cwd(), "templates", "recurso_administrativo.docx");
+    
+    // Ler o arquivo template como binário
+    const content2 = await fs.readFile(templatePath, { encoding: 'binary' });
+    
+    // Criar o zip
+    const zip = new PizZip(content2);
+    
+    // Verificar se o documento.xml existe no arquivo
+    if (!zip.files['word/document.xml']) {
+      throw new Error('Arquivo word/document.xml não encontrado no template DOCX');
+    }
+    
+    // Criar o docxtemplater com as opções corretas
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+      delimiters: {
+        start: '[[',
+        end: ']]'
+      }
     });
     
-    // Gerar o buffer do documento
-    const buffer = await docx.Packer.toBuffer(doc);
+    // Renderizar com os dados
+    doc.render(dadosParaTemplate);
     
-    // Converter o buffer para base64 para enviar ao cliente
-    const base64 = Buffer.from(buffer).toString('base64');
+    // Gerar o documento de saída
+    const buf = doc.getZip().generate({
+      type: 'nodebuffer',
+      compression: 'DEFLATE'
+    });
+
+    // Verificar se há placeholders não substituídos
+    const xmlContent = zip.files['word/document.xml'].asText();
+    const placeholderRegex = /\[\[(.*?)\]\]/g;
+    const placeholdersRestantes = xmlContent.match(placeholderRegex);
+    
+    if (placeholdersRestantes && placeholdersRestantes.length > 0) {
+      console.warn(`AVISO: ${placeholdersRestantes.length} placeholders não foram substituídos:`);
+      const uniquePlaceholders = [...new Set(placeholdersRestantes)];
+      uniquePlaceholders.forEach(p => console.warn(`  - ${p}`));
+    }
+
+    // Converter o arquivo para base64 e enviar como resposta
+    const base64 = Buffer.from(buf).toString('base64');
     
     return NextResponse.json({
       success: true,
@@ -648,11 +311,11 @@ export async function POST(request: NextRequest) {
       contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       content: base64
     });
-    
+
   } catch (error) {
-    console.error('Erro ao gerar documento:', error);
+    console.error("Erro ao gerar a petição:", error);
     return NextResponse.json(
-      { error: 'Erro ao gerar documento', message: (error as Error).message },
+      { success: false, error: "Erro ao gerar a petição" },
       { status: 500 }
     );
   }

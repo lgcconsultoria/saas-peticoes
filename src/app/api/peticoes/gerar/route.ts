@@ -689,17 +689,28 @@ async function generatePeticaoAsync(statusId: string, data: any, isProduction: b
     
     // Usar o novo formato de prompt específico solicitado pelo usuário
     promptFinal = `Você é um advogado especializado em direito administrativo. Sua tarefa é gerar uma petição jurídica completa com base no tipo, motivo e fatos fornecidos.
+
+INFORMAÇÃO IMPORTANTE SOBRE TEMPLATE:
+Um template DOCX será usado para gerar a petição final. Seu texto será inserido automaticamente nos seguintes campos do template:
+- [FATOS] - O conteúdo que você fornecer na seção "FATOS:" será inserido aqui
+- [ARGUMENTOS] - O conteúdo que você fornecer na seção "ARGUMENTOS:" será inserido aqui
+- [PEDIDOS] - O conteúdo que você fornecer na seção "PEDIDO:" será inserido aqui
+
+NÃO INCLUA OS CABEÇALHOS "I - DOS FATOS", "II - DOS FUNDAMENTOS", "III - DOS PEDIDOS" em sua resposta, pois estes já existem no template. Forneça apenas o conteúdo que deve ir sob esses cabeçalhos.
+
 INSTRUÇÕES:
 Analise cuidadosamente o TIPO de petição solicitada, o MOTIVO apresentado e os FATOS descritos.
 OBRIGATORIAMENTE utilize os conhecimentos jurídicos (jurisprudência, doutrina e legislação) fornecidos neste prompt para fundamentar sua resposta.
 Você também deve pesquisar e utilizar OUTROS artigos específicos da legislação que sejam mais relevantes para o caso concreto, não se limitando apenas àqueles fornecidos neste prompt.
-Elabore uma petição completa contendo:
-   a) FATOS APRIMORADOS:
+Elabore uma petição com os seguintes componentes:
+
+   a) FATOS:
 Reescreva os fatos apresentados dando-lhes um contexto jurídico específico para o tipo de petição solicitada
 Organize cronologicamente e destaque os elementos juridicamente relevantes
 Adapte a linguagem para o contexto específico do tipo de petição escolhido pelo usuário
 Os fatos devem ter pelo menos 200 caracteres
-   b) ARGUMENTOS JURÍDICOS:
+
+   b) ARGUMENTOS:
 Fundamente com base na legislação fornecida, especialmente a Lei nº 14.133/2021 para licitações
 Inclua OBRIGATORIAMENTE referências à jurisprudência relevante (TCU, STJ, STF) fornecida nos conhecimentos jurídicos deste prompt
 Incorpore citações doutrinárias fornecidas nos conhecimentos jurídicos
@@ -707,20 +718,27 @@ Desenvolva argumentação sólida com pelo menos 2 parágrafos bem fundamentados
 Explique claramente por que a situação descrita nos fatos merece atenção jurídica
 Cite artigos específicos da legislação fornecida nos conhecimentos jurídicos
 Os argumentos devem ter pelo menos 500 caracteres
+
    c) PEDIDO:
 Estruture pedidos claros, objetivos e específicos
 Inclua todos os requerimentos necessários para atender à pretensão
-Organize em formato de tópicos (a, b, c, etc.)
+Organize em formato de tópicos (1., 2., 3., etc.)
 Garanta que os pedidos sejam coerentes com os argumentos apresentados e adequados ao tipo de petição
 Os pedidos devem ter pelo menos 100 caracteres
+
 Formate sua resposta EXATAMENTE neste formato:
+
 FATOS:
 [Sua versão melhorada dos fatos aqui]
+
 ARGUMENTOS:
 [Seus argumentos jurídicos aqui, incluindo fundamentação legal e doutrinária dos conhecimentos fornecidos]
+
 PEDIDO:
-[Seus pedidos aqui, estruturados em tópicos]
-É EXTREMAMENTE IMPORTANTE que você use exatamente os cabeçalhos "FATOS:", "ARGUMENTOS:" e "PEDIDO:" para que o sistema possa extrair corretamente as informações.
+[Seus pedidos aqui, estruturados em tópicos numerados]
+
+É EXTREMAMENTE IMPORTANTE que você use exatamente os cabeçalhos "FATOS:", "ARGUMENTOS:" e "PEDIDO:" para que o sistema possa substituir os placeholders no template DOCX corretamente.
+
 REGRAS ADICIONAIS:
 NÃO SE LIMITE aos conhecimentos jurídicos fornecidos no prompt - busque e utilize artigos específicos da legislação mais adequados ao caso concreto
 Não cite a Lei 8.666/93 como fundamento, pois foi revogada
@@ -732,7 +750,7 @@ Verifique a precisão de todas as citações legais
 Mantenha linguagem formal e técnica apropriada para peças jurídicas
 Adapte o conteúdo ao tipo específico de petição solicitada pelo usuário
 NÃO inclua texto adicional antes dos cabeçalhos ou após o conteúdo do PEDIDO
-NÃO modifique os cabeçalhos solicitados
+NÃO inclua conclusão, saudação ou assinatura - o template já possui essas informações
 
 DADOS DO CASO:
 - Tipo de Petição: ${tipoPeticao}
